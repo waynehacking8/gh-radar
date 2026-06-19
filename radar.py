@@ -263,46 +263,125 @@ def src_reddit():
     return out
 
 
+X_API = "https://api.twitterapi.io/twitter/user/last_tweets"
+X_TOOL_RE = re.compile(r"github|开源|開源|\bstar\b|⭐|repo|工具|神器|项目", re.I)
+
+
+def _x_tweets(user, key, pages):
+    """Recent tweets for one user, paginated to widen the window. [] on error."""
+    tweets, cursor = [], None
+    for _ in range(pages):
+        params = {"userName": user, "includeReplies": "false"}
+        if cursor:
+            params["cursor"] = cursor
+        try:
+            data = json.loads(http_get(
+                f"{X_API}?{urllib.parse.urlencode(params)}", headers={"X-API-Key": key}))
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! X @{user}: {e}", file=sys.stderr)
+            break
+        batch = data.get("tweets") or data.get("data") or []
+        if isinstance(batch, dict):
+            batch = batch.get("tweets", [])
+        tweets += batch
+        cursor = data.get("next_cursor")
+        if not (data.get("has_next_page") and cursor):
+            break
+    return tweets
+
+
+def _x_typed_links(tw):
+    """Typed text + EXPANDED entity urls only (incl. quoted/retweeted). Never the
+    raw JSON, whose truncated display_urls (…) and media links yield junk repos."""
+    parts = [tw.get("text") or ""]
+    for c in (tw, tw.get("quoted_tweet"), tw.get("retweeted_tweet")):
+        if isinstance(c, dict):
+            parts.append(c.get("text") or "")
+            parts += [u.get("expanded_url") or ""
+                      for u in (c.get("entities") or {}).get("urls") or []]
+    return " ".join(filter(None, parts))
+
+
+def _x_identify(prose, add):
+    """Name the repo behind each link-less tweet via the LLM, then verify every
+    guess against the GitHub API + a star-count check so a hallucination can't pass.
+    No-op (keeps only directly-linked repos) if the LLM is unavailable."""
+    if not prose:
+        return
+    prompt = (
+        "Each item is a tweet (often Chinese) describing ONE open-source GitHub tool. "
+        "Identify the exact repository. Answer immediately from memory; do NOT "
+        "deliberate. Use null if you are not sure. "
+        'Return ONLY JSON: [{"i":int,"repo":"owner/repo","confidence":0-1}].\n\n'
+        + json.dumps([{"i": i, "text": p["text"]} for i, p in enumerate(prose)],
+                     ensure_ascii=False)
+    )
+    guesses = _claude_json(prompt, want="array", model="haiku", timeout=120)
+    if not isinstance(guesses, list):
+        print("  i X: LLM unavailable — keeping only directly-linked repos", file=sys.stderr)
+        return
+    found = 0
+    for g in guesses:
+        i = g.get("i") if isinstance(g, dict) else None
+        if not (isinstance(i, int) and 0 <= i < len(prose) and g.get("confidence", 0) >= 0.5):
+            continue
+        repo, p = g.get("repo"), prose[i]
+        if not (isinstance(repo, str) and "/" in repo):
+            continue
+        info = gh_api(f"/repos/{repo}")
+        if not info or info.get("archived") or info.get("fork"):
+            continue
+        claim, actual = p["claim_stars"], info.get("stargazers_count", 0)
+        if claim and not (claim * 0.3 <= actual <= claim * 3):     # star count way off
+            print(f"  ! X: rejected {repo} (claim ~{claim}, actual {actual})", file=sys.stderr)
+            continue
+        add(info["full_name"], p["user"], p["url"], p["likes"])
+        found += 1
+    print(f"  ✓ X: {found} repo(s) identified from prose tweets", file=sys.stderr)
+
+
 def src_x():
-    """Github repos shared by a curated set of X accounts, via twitterapi.io.
-    Optional: needs TWITTERAPI_IO_KEY. This is the only source that catches an
-    already-popular tool being *re-shared* on X (the 'mempalace' case). Mirrors
-    content-radar's collector. Returns {full_name: {x_mentions, x_by, x_url, x_likes}}."""
+    """GitHub repos shared by curated X accounts (twitterapi.io). Optional — needs
+    TWITTERAPI_IO_KEY. The only source that catches an already-popular tool being
+    *re-shared* (the 'mempalace' case): English accounts link the repo directly;
+    Chinese accounts describe it in prose, which the LLM resolves and verifies."""
     key = os.environ.get("TWITTERAPI_IO_KEY")
     if not key:
         print("  i X disabled (set TWITTERAPI_IO_KEY to enable)", file=sys.stderr)
         return {}
     accounts = _split_env(
-        "GH_RADAR_X_ACCOUNTS",
-        # zh tool-sharing accounts (where Wayne actually discovers tools) first,
-        # then the English AI/dev set.
-        "axichuhai,"
-        "karpathy,swyx,_philschmid,simonw,reach_vb,omarsar0,clementdelangue,"
-        "vllm_project,ggerganov,jeremyphoward",
-    )
-    out = {}
-    for user in accounts:
-        try:
-            url = ("https://api.twitterapi.io/twitter/user/last_tweets?"
-                   + urllib.parse.urlencode({"userName": user, "includeReplies": "false"}))
-            data = json.loads(http_get(url, headers={"X-API-Key": key}))
-        except Exception as e:  # noqa: BLE001
-            print(f"  ! X @{user} failed: {e}", file=sys.stderr)
-            continue
-        tweets = data.get("tweets") or data.get("data") or []
-        if isinstance(tweets, dict):
-            tweets = tweets.get("tweets", [])
-        for tw in tweets:
+        "GH_RADAR_X_ACCOUNTS",                       # zh discovery accounts first
+        "axichuhai,karpathy,swyx,simonw,_philschmid,reach_vb,omarsar0,"
+        "clementdelangue,vllm_project,ggerganov")
+    pages = int(os.environ.get("GH_RADAR_X_PAGES", "1"))
+    max_llm = int(os.environ.get("GH_RADAR_X_MAX_LLM", "25"))
+
+    out, prose = {}, []
+
+    def add(full, user, url, likes):
+        e = out.setdefault(full, {"x_mentions": 0, "x_by": [], "x_url": url, "x_likes": 0})
+        e["x_mentions"] += 1
+        if user not in e["x_by"]:
+            e["x_by"].append(user)
+        if likes >= e["x_likes"]:
+            e["x_likes"], e["x_url"] = likes, (url or e["x_url"])
+
+    for idx, user in enumerate(accounts):
+        if idx:
+            time.sleep(2.0)                          # twitterapi.io rate-limits bursts
+        for tw in _x_tweets(user, key, pages):
             likes = int(tw.get("likeCount") or tw.get("favorite_count") or 0)
-            turl = tw.get("url") or ""
-            for full in repos_in(json.dumps(tw)):   # scans text + expanded urls
-                e = out.setdefault(
-                    full, {"x_mentions": 0, "x_by": [], "x_url": turl, "x_likes": 0})
-                e["x_mentions"] += 1
-                if user not in e["x_by"]:
-                    e["x_by"].append(user)
-                if likes >= e["x_likes"]:
-                    e["x_likes"], e["x_url"] = likes, (turl or e["x_url"])
+            url, text = tw.get("url") or "", tw.get("text") or ""
+            links = list(repos_in(_x_typed_links(tw)))
+            if links:
+                for full in links:                   # repo linked directly in the tweet
+                    add(full, user, url, likes)
+            elif X_TOOL_RE.search(text):             # repo only named in prose
+                prose.append({"user": user, "url": url, "likes": likes,
+                              "text": text[:240], "claim_stars": parse_star_count(text)})
+
+    prose.sort(key=lambda p: p["likes"], reverse=True)   # resolve the loudest first
+    _x_identify(prose[:max_llm], add)
     return out
 
 
@@ -321,14 +400,44 @@ def enrich(full, agg):
     return True
 
 
+def _claude_json(prompt, want="object", model="sonnet", timeout=240):
+    """Run `claude -p` and parse a JSON object/array out of its reply. Returns the
+    parsed value, or None if claude is absent/unauthenticated/times out/malformed.
+    `want` is "object" -> {...} or "array" -> [...]."""
+    cli = shutil.which("claude")
+    if not cli:
+        return None
+    try:
+        proc = subprocess.run(
+            [cli, "-p", "--output-format", "json", "--model", model],
+            input=prompt, capture_output=True, text=True, timeout=timeout,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"claude exited {proc.returncode}: {proc.stderr.strip()[:200]}")
+        text = json.loads(proc.stdout).get("result", "") or ""
+        pat = r"\{.*\}" if want == "object" else r"\[.*\]"
+        m = re.search(pat, text, re.S)        # tolerate preamble / ```json fences
+        if not m:
+            raise ValueError("no JSON in model output")
+        return json.loads(m.group(0))
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! claude call failed ({e})", file=sys.stderr)
+        return None
+
+
+def parse_star_count(text):
+    """Pull a star-ish magnitude from '17w star' / '170k' / '1.7万' -> int, else None."""
+    m = re.search(r"(\d+(?:\.\d+)?)\s*([wWkK万萬])", text or "")
+    if not m:
+        return None
+    n = float(m.group(1))
+    return int(n * (10000 if m.group(2).lower() in ("w", "万", "萬") else 1000))
+
+
 def summarize_zh(repos):
     """Best-effort: add a Traditional-Chinese one-liner to each repo via the
     `claude` CLI (local login, or CI with CLAUDE_CODE_OAUTH_TOKEN). One batched
     call for all repos. Silently falls back to English-only if claude is absent."""
-    cli = shutil.which("claude")
-    if not cli:
-        print("  i no claude CLI — skipping Chinese summaries", file=sys.stderr)
-        return
     items = [{"name": r["full_name"], "en": r.get("desc", "")} for r in repos]
     prompt = (
         "Below is a JSON array of GitHub repos. For EACH repo write a concise "
@@ -338,22 +447,9 @@ def summarize_zh(repos):
         "No markdown fences, no commentary.\n\nRepos:\n"
         + json.dumps(items, ensure_ascii=False)
     )
-    try:
-        proc = subprocess.run(
-            [cli, "-p", "--output-format", "json", "--model", "sonnet"],
-            input=prompt, capture_output=True, text=True, timeout=240,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(f"claude exited {proc.returncode}: {proc.stderr.strip()[:200]}")
-        text = json.loads(proc.stdout).get("result", "") or ""
-        m = re.search(r"\{.*\}", text, re.S)   # tolerate preamble / ```json fences
-        if not m:
-            raise ValueError("no JSON object in model output")
-        mapping = json.loads(m.group(0))
-        if not isinstance(mapping, dict):
-            raise ValueError(f"expected JSON object, got {type(mapping).__name__}")
-    except Exception as e:  # noqa: BLE001
-        print(f"  ! Chinese summary failed ({e}); using English only", file=sys.stderr)
+    mapping = _claude_json(prompt, want="object")
+    if not isinstance(mapping, dict):
+        print("  i Chinese summaries unavailable — using English only", file=sys.stderr)
         return
     n = 0
     for r in repos:
