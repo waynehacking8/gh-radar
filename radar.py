@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
 """gh-radar — a daily digest of GitHub tools that are trending or being shared.
 
-Stable, free sources only. No X/Twitter API, no logged-in scraping, no paid keys:
-  1. GitHub Trending (HTML)     -> star velocity: "what's hot today"
-  2. Hacker News (Algolia API)  -> what developers are actually discussing
+Free sources only (no paid keys required). Each source self-isolates: if one
+fails it returns empty and the digest still ships from the rest.
+  1. GitHub Trending (HTML)     -> star velocity: daily + weekly + per-language
+  2. Hacker News (Algolia API)  -> what developers are discussing now
   3. GitHub Search API          -> brand-new repos already gaining stars
+  4. Lobsters (hottest.json)    -> curated programming community
+  5. X / Twitter (Firecrawl)    -> tools curated accounts share; prose tweets are
+                                   resolved by LLM name-extract + GitHub star match
+  6. web articles (Firecrawl)   -> tool round-up listicles, harvested for repos
+  7. Reddit (OAuth, optional)   -> tool-discovery subreddits
 
 It dedupes across sources, scores each repo, remembers what it already sent
-(so you don't see the same repo every day), renders a Markdown digest, and
-emails it via SMTP. Standard library only.
+(so you don't see the same repo every day), renders a Markdown digest with a
+per-repo provenance line, and emails it via SMTP. Standard library only.
 
 Config via environment (see config.example.env):
-  GITHUB_TOKEN   optional, raises API rate limit 60/hr -> 5000/hr
-  SMTP_HOST      e.g. smtp.gmail.com
-  SMTP_PORT      e.g. 587
-  SMTP_USER      your gmail address
-  SMTP_PASS      a Gmail App Password (NOT your login password)
-  EMAIL_TO       where to send the digest (defaults to SMTP_USER)
-  MIN_STARS      ignore repos below this many total stars (default 30)
-  SEEN_TTL_DAYS  don't re-show a repo seen within this many days (default 14)
+  GITHUB_TOKEN     optional but recommended: API limit 60/hr -> 5000/hr. Without it,
+                   enrich() rate-limits and only the Trending source survives.
+  FIRECRAWL_API_KEY  optional: lifts Firecrawl's keyless 429 cap (X + web sources)
+  CLAUDE_CODE_OAUTH_TOKEN  optional: enables zh summaries + X prose resolution
+  SMTP_HOST/PORT/USER/PASS   Gmail SMTP + App Password
+  EMAIL_TO         where to send (falls back to SMTP_USER if unset)
+  MIN_STARS (30), SEEN_TTL_DAYS (14), GH_RADAR_MAX_ITEMS (50)
 """
 
 import json
@@ -481,12 +486,16 @@ def _claude_json(prompt, want="object", model="sonnet", timeout=240):
 
 
 def parse_star_count(text):
-    """Pull a star-ish magnitude from '17w star' / '170k' / '1.7万' -> int, else None."""
-    m = re.search(r"(\d+(?:\.\d+)?)\s*([wWkK万萬])", text or "")
-    if not m:
-        return None
-    n = float(m.group(1))
-    return int(n * (10000 if m.group(2).lower() in ("w", "万", "萬") else 1000))
+    """Pull a star count from '17w star' / '55K 星标' / '6万+ star' -> int, else None.
+    Only counts a magnitude that sits NEXT TO a star keyword, so '4K video' or
+    '10k users' don't get misread as a star count (which would mis-resolve the repo)."""
+    text = text or ""
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*([wWkK万萬])", text):
+        window = text[max(0, m.start() - 8):m.end() + 8].lower()
+        if "star" in window or "星" in window or "⭐" in window:
+            n = float(m.group(1))
+            return int(n * (10000 if m.group(2).lower() in ("w", "万", "萬") else 1000))
+    return None
 
 
 def summarize_zh(repos):
@@ -673,7 +682,7 @@ def send_email(subject, md):
     host = os.environ.get("SMTP_HOST")
     user = os.environ.get("SMTP_USER")
     pw = os.environ.get("SMTP_PASS")
-    to = os.environ.get("EMAIL_TO", user)
+    to = os.environ.get("EMAIL_TO") or user   # empty/unset EMAIL_TO -> fall back to sender
     if not (host and user and pw and to):
         print("  i SMTP not configured — printing digest instead.\n", file=sys.stderr)
         print(md)
