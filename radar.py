@@ -263,56 +263,79 @@ def src_reddit():
     return out
 
 
-X_API = "https://api.twitterapi.io/twitter/user/last_tweets"
-X_TOOL_RE = re.compile(r"github|开源|開源|\bstar\b|⭐|repo|工具|神器|项目", re.I)
+X_TOOL_RE = re.compile(r"github|开源|開源|\bstar\b|星标|星標|⭐|repo|工具|神器|项目|項目", re.I)
+FC_SCRAPE = "https://api.firecrawl.dev/v2/scrape"
+FC_SEARCH = "https://api.firecrawl.dev/v2/search"
 
 
-def _x_tweets(user, key, pages):
-    """Recent tweets for one user, paginated to widen the window. [] on error."""
-    tweets, cursor = [], None
-    for _ in range(pages):
-        params = {"userName": user, "includeReplies": "false"}
-        if cursor:
-            params["cursor"] = cursor
-        try:
-            data = json.loads(http_get(
-                f"{X_API}?{urllib.parse.urlencode(params)}", headers={"X-API-Key": key}))
-        except Exception as e:  # noqa: BLE001
-            print(f"  ! X @{user}: {e}", file=sys.stderr)
-            break
-        batch = data.get("tweets") or data.get("data") or []
-        if isinstance(batch, dict):
-            batch = batch.get("tweets", [])
-        tweets += batch
-        cursor = data.get("next_cursor")
-        if not (data.get("has_next_page") and cursor):
-            break
-    return tweets
+def _firecrawl(endpoint, payload):
+    """Call Firecrawl (free, keyless; uses FIRECRAWL_API_KEY if set). -> data dict / None."""
+    headers = {"Content-Type": "application/json"}
+    fkey = os.environ.get("FIRECRAWL_API_KEY")
+    if fkey:
+        headers["Authorization"] = f"Bearer {fkey}"
+    try:
+        req = urllib.request.Request(
+            endpoint, data=json.dumps(payload).encode(),
+            headers={"User-Agent": UA, **headers})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = json.loads(r.read().decode("utf-8", "replace"))
+        return data.get("data") if data.get("success") else None
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! firecrawl {endpoint.rsplit('/', 1)[-1]} failed: {e}", file=sys.stderr)
+        return None
 
 
-def _x_typed_links(tw):
-    """Typed text + EXPANDED entity urls only (incl. quoted/retweeted). Never the
-    raw JSON, whose truncated display_urls (…) and media links yield junk repos."""
-    parts = [tw.get("text") or ""]
-    for c in (tw, tw.get("quoted_tweet"), tw.get("retweeted_tweet")):
-        if isinstance(c, dict):
-            parts.append(c.get("text") or "")
-            parts += [u.get("expanded_url") or ""
-                      for u in (c.get("entities") or {}).get("urls") or []]
-    return " ".join(filter(None, parts))
+def _scrape_md(url):
+    """Scrape one URL to markdown via Firecrawl. '' on failure."""
+    data = _firecrawl(FC_SCRAPE, {"url": url, "formats": ["markdown"]})
+    if isinstance(data, dict):
+        return (data.get("markdown") or "").replace("\\", "")
+    return ""
+
+
+def _parse_x_posts(md):
+    """Parse Firecrawl's X-profile markdown into [{text, url, likes}]."""
+    posts = []
+    for block in re.split(r"\n#{2,3}\s+\d+\.\s+Post", md)[1:]:
+        um = re.search(r"\]\((https?://[^)]+/status/\d+)\)", block)
+        text = " ".join(re.findall(r"^>\s?(.*)$", block, re.M)).strip()
+        lm = re.search(r"Likes:\s*([\d,]+)", block)
+        if text:
+            posts.append({"text": text, "url": um.group(1) if um else "",
+                          "likes": int(lm.group(1).replace(",", "")) if lm else 0})
+    return posts
+
+
+def _resolve_repo(query, claim_stars):
+    """Resolve a tool name to its real repo via GitHub search, disambiguated by the
+    star count claimed in the post. This beats asking the LLM to recall owner/repo
+    (which hallucinates owners). Returns the repo info dict, or None."""
+    data = gh_api(f"/search/repositories?q={urllib.parse.quote(query)}&sort=stars&per_page=5")
+    items = (data or {}).get("items", [])
+    if not items:
+        return None
+    if claim_stars:                       # pick the candidate whose stars match the claim
+        in_range = [it for it in items
+                    if claim_stars * 0.4 <= it["stargazers_count"] <= claim_stars * 2.5]
+        return min(in_range, key=lambda it: abs(it["stargazers_count"] - claim_stars),
+                   default=None)
+    top = items[0]                        # no claim: trust the top hit if it's popular
+    return top if top["stargazers_count"] >= MIN_STARS else None
 
 
 def _x_identify(prose, add):
-    """Name the repo behind each link-less tweet via the LLM, then verify every
-    guess against the GitHub API + a star-count check so a hallucination can't pass.
-    No-op (keeps only directly-linked repos) if the LLM is unavailable."""
+    """For each link-less tool tweet: the LLM extracts just the tool NAME / search
+    keywords (easy + reliable), then GitHub search + star-count match resolves the
+    real repo. No-op (keeps only directly-linked repos) if the LLM is unavailable."""
     if not prose:
         return
     prompt = (
-        "Each item is a tweet (often Chinese) describing ONE open-source GitHub tool. "
-        "Identify the exact repository. Answer immediately from memory; do NOT "
-        "deliberate. Use null if you are not sure. "
-        'Return ONLY JSON: [{"i":int,"repo":"owner/repo","confidence":0-1}].\n\n'
+        "Each item is a tweet (often Chinese) about ONE open-source GitHub tool. "
+        "Extract the tool's NAME or the best GitHub search keywords (prefer the "
+        "literal project name in latin letters if present, e.g. 'mempalace', "
+        "'ai-hedge-fund'). Do NOT guess the owner. null if it is not a specific tool. "
+        'Return ONLY JSON: [{"i":int,"query":"...","confidence":0-1}].\n\n'
         + json.dumps([{"i": i, "text": p["text"]} for i, p in enumerate(prose)],
                      ensure_ascii=False)
     )
@@ -325,36 +348,29 @@ def _x_identify(prose, add):
         i = g.get("i") if isinstance(g, dict) else None
         if not (isinstance(i, int) and 0 <= i < len(prose) and g.get("confidence", 0) >= 0.5):
             continue
-        repo, p = g.get("repo"), prose[i]
-        if not (isinstance(repo, str) and "/" in repo):
+        query, p = g.get("query"), prose[i]
+        if not isinstance(query, str) or len(query) < 2:
             continue
-        info = gh_api(f"/repos/{repo}")
+        info = _resolve_repo(query, p["claim_stars"])
         if not info or info.get("archived") or info.get("fork"):
-            continue
-        claim, actual = p["claim_stars"], info.get("stargazers_count", 0)
-        if claim and not (claim * 0.3 <= actual <= claim * 3):     # star count way off
-            print(f"  ! X: rejected {repo} (claim ~{claim}, actual {actual})", file=sys.stderr)
             continue
         add(info["full_name"], p["user"], p["url"], p["likes"])
         found += 1
-    print(f"  ✓ X: {found} repo(s) identified from prose tweets", file=sys.stderr)
+    print(f"  ✓ X: {found} repo(s) resolved from prose tweets", file=sys.stderr)
 
 
 def src_x():
-    """GitHub repos shared by curated X accounts (twitterapi.io). Optional — needs
-    TWITTERAPI_IO_KEY. The only source that catches an already-popular tool being
-    *re-shared* (the 'mempalace' case): English accounts link the repo directly;
-    Chinese accounts describe it in prose, which the LLM resolves and verifies."""
-    key = os.environ.get("TWITTERAPI_IO_KEY")
-    if not key:
-        print("  i X disabled (set TWITTERAPI_IO_KEY to enable)", file=sys.stderr)
-        return {}
+    """GitHub repos shared by curated X accounts, scraped via Firecrawl (free, no
+    key, no login wall). The only source that catches an already-popular tool being
+    *re-shared* (the 'mempalace' case): Chinese accounts describe a tool in prose;
+    the LLM extracts its name and GitHub search + star-count resolves the real repo."""
     accounts = _split_env(
-        "GH_RADAR_X_ACCOUNTS",                       # zh discovery accounts first
-        "axichuhai,karpathy,swyx,simonw,_philschmid,reach_vb,omarsar0,"
-        "clementdelangue,vllm_project,ggerganov")
-    pages = int(os.environ.get("GH_RADAR_X_PAGES", "1"))
-    max_llm = int(os.environ.get("GH_RADAR_X_MAX_LLM", "25"))
+        "GH_RADAR_X_ACCOUNTS",                       # zh tool-discovery accounts
+        "axichuhai,dotey,op7418")
+    if not accounts:
+        print("  i X disabled (GH_RADAR_X_ACCOUNTS empty)", file=sys.stderr)
+        return {}
+    max_llm = int(os.environ.get("GH_RADAR_X_MAX_LLM", "30"))
 
     out, prose = {}, []
 
@@ -368,20 +384,45 @@ def src_x():
 
     for idx, user in enumerate(accounts):
         if idx:
-            time.sleep(2.0)                          # twitterapi.io rate-limits bursts
-        for tw in _x_tweets(user, key, pages):
-            likes = int(tw.get("likeCount") or tw.get("favorite_count") or 0)
-            url, text = tw.get("url") or "", tw.get("text") or ""
-            links = list(repos_in(_x_typed_links(tw)))
+            time.sleep(1.0)                          # be polite to the free tier
+        for post in _parse_x_posts(_scrape_md(f"https://x.com/{user}")):
+            text, url, likes = post["text"], post["url"], post["likes"]
+            links = list(repos_in(text))
             if links:
-                for full in links:                   # repo linked directly in the tweet
+                for full in links:
                     add(full, user, url, likes)
-            elif X_TOOL_RE.search(text):             # repo only named in prose
+            elif X_TOOL_RE.search(text):
                 prose.append({"user": user, "url": url, "likes": likes,
-                              "text": text[:240], "claim_stars": parse_star_count(text)})
+                              "text": text[:300], "claim_stars": parse_star_count(text)})
 
-    prose.sort(key=lambda p: p["likes"], reverse=True)   # resolve the loudest first
+    prose.sort(key=lambda p: p["likes"], reverse=True)
     _x_identify(prose[:max_llm], add)
+    return out
+
+
+def src_fc_articles():
+    """Discovery beyond any single account: Firecrawl-search a few 'best tools'
+    queries, scrape the listicle articles, and harvest the GitHub repos they link.
+    Free/keyless. Disabled by setting GH_RADAR_FC_QUERIES to an empty string."""
+    queries = _split_env(
+        "GH_RADAR_FC_QUERIES",
+        "trending open source AI developer tools 2026|"
+        "underrated useful github repos people are sharing")
+    if not queries:
+        return {}
+    out = {}
+    per_q = int(os.environ.get("GH_RADAR_FC_PER_QUERY", "2"))
+    for qi, query in enumerate(queries):
+        if qi:
+            time.sleep(1.0)
+        data = _firecrawl(FC_SEARCH, {"query": query, "limit": per_q})
+        results = (data or {}).get("web", []) if isinstance(data, dict) else []
+        for r in results[:per_q]:
+            url = r.get("url") or ""
+            if not url or "github.com" in url:       # the trending page itself adds noise
+                continue
+            for full in repos_in(_scrape_md(url)):
+                out.setdefault(full, {"fc_url": url})
     return out
 
 
@@ -465,9 +506,13 @@ def score(agg):
     s = 0.0
     s += agg.get("stars_today", 0) * 1.0
     s += agg.get("hn_points", 0) * 2.0          # HN discussion weighted higher
-    s += min(agg.get("x_mentions", 0), 5) * 8   # shared by curated X accounts
+    # A human you follow choosing to share a tool is the strongest signal here, so
+    # X gets a big flat bonus (it must not be drowned out by high-velocity trending).
+    s += 120 if "x" in agg.get("sources", []) else 0
+    s += min(agg.get("x_mentions", 0), 5) * 15
     s += min(agg.get("reddit_points", 0), 1000) * 0.02
     s += min(agg.get("lobsters_score", 0), 200) * 0.3
+    s += 25 if "web" in agg.get("sources", []) else 0   # surfaced in a tool article
     s += 40 if agg.get("new_repo") else 0       # novelty bonus
     s += min(agg.get("stars", 0), 5000) * 0.01  # mild popularity tiebreak
     s += 15 * len(agg.get("sources", []))       # multi-source = stronger signal
@@ -499,7 +544,7 @@ def save_seen(seen):
 def render_md(repos, when):
     used = sorted({s for r in repos for s in r["sources"]})
     names = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
-             "lobsters": "Lobsters", "reddit": "Reddit", "x": "X"}
+             "lobsters": "Lobsters", "reddit": "Reddit", "x": "X", "web": "web articles"}
     pretty = ", ".join(names.get(s, s) for s in used)
     lines = [f"# GitHub Radar — {when}", ""]
     lines.append(f"_{len(repos)} new tools surfaced from {pretty}._")
@@ -518,6 +563,8 @@ def render_md(repos, when):
             tags.append(f"👽 r/{r.get('reddit_sub', '')} {r.get('reddit_points', 0)}")
         if "lobsters" in src:
             tags.append(f"🦞 {r.get('lobsters_score', 0)}")
+        if "web" in src:
+            tags.append("📰 web")
         if "new" in src:
             tags.append("🆕 new")
         meta = " · ".join(tags)
@@ -542,6 +589,8 @@ def render_md(repos, when):
             refs.append(f"[Reddit]({r['reddit_url']})")
         if r.get("lobsters_url"):
             refs.append(f"[Lobsters]({r['lobsters_url']})")
+        if r.get("fc_url"):
+            refs.append(f"[article]({r['fc_url']})")
         if refs:
             lines.append("")
             lines.append(" · ".join(refs))
@@ -618,6 +667,7 @@ def main():
         ("lobsters", src_lobsters),
         ("reddit", src_reddit),
         ("x", src_x),
+        ("web", src_fc_articles),
     ]
     agg = {}
     for label, fn in sources:

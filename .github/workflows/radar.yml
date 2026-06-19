@@ -45,9 +45,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Optional sources — self-disable if the secret is unset:
-          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}     # X (twitterapi.io)
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}       # Reddit
+          # X + web sources scrape via Firecrawl (free, keyless). A key only raises
+          # limits when you scale — self-disables nothing if unset:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}       # Reddit (optional)
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           SMTP_HOST: smtp.gmail.com
           SMTP_PORT: "587"

@@ -17,12 +17,16 @@ add a key:
 | Hacker News | what devs are discussing now | Algolia API | — |
 | GitHub Search | brand-new repos gaining stars | official API | — |
 | Lobsters | curated programming community | hottest.json | — |
+| X / Twitter | tools shared by curated accounts | [Firecrawl](https://firecrawl.dev) scrape (free, keyless) | — |
+| web articles | tool round-up listicles | Firecrawl search + scrape | — |
 | Reddit | r/commandline, r/selfhosted, … | OAuth API | `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` |
-| X / Twitter | tools shared by curated accounts | [twitterapi.io](https://twitterapi.io) | `TWITTERAPI_IO_KEY` |
 
-The X layer is the only one that catches an *already-popular* tool being
-**re-shared** (the "I saw it on X" case). The weekly Trending window catches
-tools that stay hot all week, not just a one-day spike.
+The X layer is the one that catches an *already-popular* tool being **re-shared**
+(the "I saw it on X" case). Chinese tool accounts rarely link GitHub directly —
+they describe the tool in prose — so the LLM extracts the tool name and a GitHub
+search, disambiguated by the star count mentioned in the post, resolves the real
+repo (e.g. "记忆宫殿 55K star" → `MemPalace/mempalace`). A free `FIRECRAWL_API_KEY`
+raises rate limits if the keyless tier starts returning 429s.
 
 Each repo is scored (HN/X discussion weighted highest, novelty bonus, multi-source
 bonus), and a 14-day memory stops the same repo showing up every day. Any single
