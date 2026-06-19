@@ -66,7 +66,7 @@ gh-radar: collecting…
   trending: 16 repos
   hacker news: 95 repos
   new repos: 30 repos
-  ✓ emailed digest to waynehacking8@users.noreply.github.com
+  ✓ emailed digest to you@example.com
 ```
 
 ```markdown

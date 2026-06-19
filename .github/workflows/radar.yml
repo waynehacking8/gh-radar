@@ -54,7 +54,7 @@ jobs:
           SMTP_PORT: "587"
           SMTP_USER: ${{ secrets.GMAIL_USER }}
           SMTP_PASS: ${{ secrets.GMAIL_APP_PASSWORD }}
-          EMAIL_TO: waynehacking8@users.noreply.github.com
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
           GH_RADAR_HOME: state            # de-dup memory -> state/seen.json
           GH_RADAR_DIGEST_DIR: digests     # browsable archive -> digests/*.md
         run: python radar.py
