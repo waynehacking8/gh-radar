@@ -268,27 +268,41 @@ FC_SCRAPE = "https://api.firecrawl.dev/v2/scrape"
 FC_SEARCH = "https://api.firecrawl.dev/v2/search"
 
 
-def _firecrawl(endpoint, payload):
-    """Call Firecrawl (free, keyless; uses FIRECRAWL_API_KEY if set). -> data dict / None."""
-    headers = {"Content-Type": "application/json"}
+def _firecrawl(endpoint, payload, retries=3):
+    """Call Firecrawl (free + keyless; uses FIRECRAWL_API_KEY if set for far higher
+    limits). Retries on 429 with backoff (honouring Retry-After). -> data dict / None.
+    Any failure returns None so a Firecrawl outage never breaks the digest."""
+    headers = {"User-Agent": UA, "Content-Type": "application/json"}
     fkey = os.environ.get("FIRECRAWL_API_KEY")
     if fkey:
         headers["Authorization"] = f"Bearer {fkey}"
-    try:
-        req = urllib.request.Request(
-            endpoint, data=json.dumps(payload).encode(),
-            headers={"User-Agent": UA, **headers})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = json.loads(r.read().decode("utf-8", "replace"))
-        return data.get("data") if data.get("success") else None
-    except Exception as e:  # noqa: BLE001
-        print(f"  ! firecrawl {endpoint.rsplit('/', 1)[-1]} failed: {e}", file=sys.stderr)
-        return None
+    body = json.dumps(payload).encode()
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(endpoint, data=body, headers=headers)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = json.loads(r.read().decode("utf-8", "replace"))
+            return data.get("data") if data.get("success") else None
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < retries - 1:
+                wait = min(int(e.headers.get("Retry-After") or 0) or 5 * (attempt + 1), 30)
+                print(f"  i firecrawl 429 — backing off {wait}s "
+                      f"(set FIRECRAWL_API_KEY to raise limits)", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            print(f"  ! firecrawl {endpoint.rsplit('/', 1)[-1]}: {e}", file=sys.stderr)
+            return None
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! firecrawl {endpoint.rsplit('/', 1)[-1]}: {e}", file=sys.stderr)
+            return None
+    return None
 
 
 def _scrape_md(url):
-    """Scrape one URL to markdown via Firecrawl. '' on failure."""
-    data = _firecrawl(FC_SCRAPE, {"url": url, "formats": ["markdown"]})
+    """Scrape one URL to markdown via Firecrawl. '' on failure. maxAge lets Firecrawl
+    return a recent cached scrape (faster + far cheaper than a fresh crawl)."""
+    data = _firecrawl(FC_SCRAPE, {"url": url, "formats": ["markdown"],
+                                  "maxAge": 14_400_000})   # accept ≤4h-old cache
     if isinstance(data, dict):
         return (data.get("markdown") or "").replace("\\", "")
     return ""
@@ -541,6 +555,29 @@ def save_seen(seen):
 
 
 # ----------------------------------------------------------------------------- render
+def _provenance(r):
+    """Human-readable source attribution for one repo. Firecrawl-derived sources
+    (X, web) are explicitly marked as such so the origin is always clear."""
+    src, parts = r["sources"], []
+    if "trending" in src:
+        parts.append("GitHub Trending")
+    if "hn" in src:
+        parts.append("Hacker News")
+    if "new" in src:
+        parts.append("GitHub new-repo search")
+    if "lobsters" in src:
+        parts.append("Lobsters")
+    if "reddit" in src:
+        parts.append(f"Reddit r/{r.get('reddit_sub', '')}".rstrip("/ "))
+    if "x" in src:
+        who = ", ".join("@" + h for h in r.get("x_by", [])[:2])
+        parts.append(f"Firecrawl → X {who}".strip())
+    if "web" in src:
+        host = re.sub(r"^https?://(www\.)?", "", r.get("fc_url", "")).split("/")[0]
+        parts.append(f"Firecrawl → {host}" if host else "Firecrawl (web article)")
+    return " · ".join(parts) or "unknown"
+
+
 def render_md(repos, when):
     used = sorted({s for r in repos for s in r["sources"]})
     names = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
@@ -591,6 +628,8 @@ def render_md(repos, when):
             refs.append(f"[Lobsters]({r['lobsters_url']})")
         if r.get("fc_url"):
             refs.append(f"[article]({r['fc_url']})")
+        lines.append("")
+        lines.append(f"📍 出處 / via: {_provenance(r)}")
         if refs:
             lines.append("")
             lines.append(" · ".join(refs))
@@ -701,7 +740,7 @@ def main():
         candidates.append(a)
 
     candidates.sort(key=lambda x: x["_score"], reverse=True)
-    top = candidates[:int(os.environ.get("GH_RADAR_MAX_ITEMS", "25"))]
+    top = candidates[:int(os.environ.get("GH_RADAR_MAX_ITEMS", "50"))]
 
     if not top:
         print("  nothing new today.", file=sys.stderr)
