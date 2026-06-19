@@ -274,6 +274,9 @@ def src_x():
         return {}
     accounts = _split_env(
         "GH_RADAR_X_ACCOUNTS",
+        # zh tool-sharing accounts (where Wayne actually discovers tools) first,
+        # then the English AI/dev set.
+        "axichuhai,"
         "karpathy,swyx,_philschmid,simonw,reach_vb,omarsar0,clementdelangue,"
         "vllm_project,ggerganov,jeremyphoward",
     )
