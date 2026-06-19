@@ -7,9 +7,10 @@ is the cron job that makes sure you find the next one. Every morning it pulls
 the tools that are trending and being discussed, dedupes them, drops the ones
 you've already seen, and emails you a ranked digest.
 
-It reads the places tools surface, across many angles. The first four sources
-are free and need no keys; the last two are optional and self-disable until you
-add a key:
+It reads the places tools surface, across many angles. Six of the seven sources
+need **no API key at all**; only Reddit is opt-in. A Claude subscription (CLI or
+token) adds the Chinese summaries and resolves Chinese-prose tweets — without it
+the digest still ships in English.
 
 | Source | Signal | How | Key |
 |---|---|---|---|
@@ -63,56 +64,89 @@ Zero pip dependencies — Python 3.9+ standard library only.
 
 ```
 gh-radar: collecting…
-  trending: 16 repos
-  hacker news: 95 repos
-  new repos: 30 repos
+  trending: 120 repos
+  hn: 91 repos
+  new: 30 repos
+  lobsters: 1 repos
+  x: 3 repos
+  ✓ X: 3 repo(s) resolved from prose tweets
+  web: 12 repos
+  ✓ Chinese summaries: 50/50
   ✓ emailed digest to you@example.com
 ```
 
 ```markdown
-# GitHub Radar — 2026-06-19
+### 1. [MemPalace/mempalace](https://github.com/MemPalace/mempalace)
+⭐ 55,992 · 𝕏 @axichuhai
 
-### 1. [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-⭐ 7,449 · 🔥 2322/day · 💬 HN 2 · C
-> High-performance code intelligence MCP server. Indexes codebases into a
-> persistent knowledge graph. 158 languages, sub-ms queries, 99% fewer tokens.
-[HN discussion](https://news.ycombinator.com/item?id=48596084)
+> 將 AI 長期記憶從摘要快取改造成可翻閱的檔案空間，本地運行、近乎零成本。
+> _A memory palace for AI agents — a browsable archive replacing summary caches._
 
-### 2. [obra/superpowers](https://github.com/obra/superpowers)
-⭐ 232,851 · 🔥 1429/day · Shell
-> An agentic skills framework & software development methodology that works.
+📍 出處 / via: Firecrawl → X @axichuhai
+
+[X post](https://x.com/axichuhai/status/...)
 ```
 
 ## Config
 
-All via `config.env` (see `config.example.env`):
+All via env (see `config.example.env`):
 
-- `GITHUB_TOKEN` — optional read-only token; lifts API limit 60→5000/hr.
-- `SMTP_*` / `EMAIL_TO` — Gmail App Password delivery.
-- `MIN_STARS` (30), `SEEN_TTL_DAYS` (14) — tuning.
-- `GH_RADAR_VAULT` — optional: also save each digest as an Obsidian note.
+- `GITHUB_TOKEN` — recommended: lifts API limit 60→5000/hr. Without it, enrich
+  rate-limits and only the Trending source survives.
+- `FIRECRAWL_API_KEY` — optional: lifts Firecrawl's keyless 429 cap (X + web).
+- `CLAUDE_CODE_OAUTH_TOKEN` — optional: enables Chinese summaries + X-prose resolution.
+- `SMTP_*` / `EMAIL_TO` — Gmail App Password delivery (EMAIL_TO falls back to SMTP_USER).
+- `MIN_STARS` (30), `SEEN_TTL_DAYS` (14), `GH_RADAR_MAX_ITEMS` (50),
+  `GH_RADAR_EVERGREEN_STARS` (50000) — tuning.
+- `GH_RADAR_X_ACCOUNTS`, `GH_RADAR_SUBREDDITS`, `GH_RADAR_TREND_LANGS`,
+  `GH_RADAR_FC_QUERIES` — what each source watches.
+- `GH_RADAR_VAULT` / `GH_RADAR_DIGEST_DIR` — also save each digest as Markdown.
+
+## Project layout
+
+A single `radar.py` shim (keeps `python radar.py` working) over the `gh_radar/`
+package:
+
+```
+gh_radar/
+  config.py     constants, scoring weights (config.W), env helpers
+  models.py     the Repo dataclass — typed core model (merge() rejects unknown keys)
+  clients.py    github / firecrawl / claude / http — every call degrades to None
+  sources.py    one src_*() per signal; SOURCES table; enrich()
+  scoring.py    score() + evergreen-noise filter
+  state.py      de-dup memory (seen.json), atomic writes
+  render.py     zh summaries, Markdown digest, HTML
+  email_out.py  SMTP delivery
+  cli.py        collect → select → render → email → remember
+```
+
+Standard library only — zero pip dependencies.
 
 ## Honest limitations
 
-- **Not X.** If a tool is shared on X but never hits Trending, HN, or gains
-  stars quickly, gh-radar won't see it. In practice the overlap is high — most
-  genuinely useful tools surface in at least one of these. X can be bolted on
-  later as an optional source if you decide it's worth the cost/fragility.
-- **GitHub Trending has no official API**, so that one source is an HTML scrape
-  and can break if GitHub redesigns the page. The other two sources are real
-  APIs and will keep the digest alive if it does.
-- **Heuristic "tool" filter.** It skips obvious non-tools (awesome-lists,
-  tutorials, books) by name, but a course or spec repo can still slip through.
-- **English/global HN bias.** HN skews to English-speaking dev discussion.
+- **GitHub Trending has no official API**, so that source is an HTML scrape that
+  can break on a redesign. The other six keep the digest alive if it does.
+- **No `GITHUB_TOKEN` = trending-only.** Without a token the GitHub API rate-limits
+  and every non-trending repo is dropped at the enrich step. CI injects one.
+- **X prose resolution needs Claude.** Without the CLI/token, X keeps only tweets
+  that link a repo directly; Chinese-prose tools are skipped (graceful).
+- **Web articles can over-list.** A "best tools" listicle may surface a famous
+  giant; the evergreen filter drops web-only repos ≥50k stars, but precision here
+  is lower than the velocity sources.
 
-## How scoring works
+## How scoring works (`config.W`)
 
 ```
-score = stars_today
-      + 2 × hn_points         # discussion is the strongest "people care" signal
-      + 40 if brand-new repo  # novelty — the whole point is finding new things
-      + 0.01 × min(stars, 5000)
-      + 15 × (number of sources it appeared in)
+score = stars_today                       # trending velocity
+      + 2 × hn_points                     # discussion = strong "people care" signal
+      + 120 if shared on a curated X acct # a human you follow chose it — strongest
+      + 15 × min(x_mentions, 5)
+      + 0.02 × min(reddit_points, 1000)
+      + 0.3 × min(lobsters_score, 200)
+      + 25 if surfaced in a web article
+      + 40 if brand-new repo              # novelty
+      + 0.01 × min(stars, 5000)           # mild popularity tiebreak
+      + 15 × (number of sources)          # multi-source = stronger signal
 ```
 
-Top 20 by score go in the digest.
+Top 50 by score go in the digest; a 14-day memory stops repeats.
