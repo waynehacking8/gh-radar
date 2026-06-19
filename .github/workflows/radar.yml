@@ -6,8 +6,10 @@ name: gh-radar
 # in state/ so you never see the same repo twice.
 #
 # One-time setup — Repo → Settings → Secrets and variables → Actions → add:
-#   GMAIL_USER          your gmail address          (required for email)
-#   GMAIL_APP_PASSWORD  a Gmail App Password         (required for email)
+#   GMAIL_USER               your gmail address      (required for email)
+#   GMAIL_APP_PASSWORD       a Gmail App Password     (required for email)
+#   CLAUDE_CODE_OAUTH_TOKEN  `claude setup-token`     (optional — enables the
+#                            Traditional-Chinese summaries; English-only without it)
 # GITHUB_TOKEN is provided automatically by Actions (lifts API limit to 5000/hr).
 
 on:
@@ -28,14 +30,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude CLI (for the Chinese summaries)
+        # Non-fatal: if this fails, radar.py degrades to English-only and the
+        # email still goes out. The Chinese layer is a nice-to-have, not a gate.
+        continue-on-error: true
+        run: npm install -g @anthropic-ai/claude-code
+
       - name: Collect signal + email digest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SMTP_HOST: smtp.gmail.com
           SMTP_PORT: "587"
           SMTP_USER: ${{ secrets.GMAIL_USER }}
           SMTP_PASS: ${{ secrets.GMAIL_APP_PASSWORD }}
-          EMAIL_TO: ${{ secrets.GMAIL_USER }}
+          EMAIL_TO: waynehacking8@users.noreply.github.com
           GH_RADAR_HOME: state            # de-dup memory -> state/seen.json
           GH_RADAR_DIGEST_DIR: digests     # browsable archive -> digests/*.md
         run: python radar.py

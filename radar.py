@@ -24,14 +24,18 @@ Config via environment (see config.example.env):
 import json
 import os
 import re
+import shutil
 import smtplib
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from email.header import Header
 from email.mime.text import MIMEText
-from html import unescape
+from email.utils import formataddr
+from html import escape as html_escape, unescape
 from pathlib import Path
 
 UA = "gh-radar/1.0 (+https://github.com/)"
@@ -166,6 +170,50 @@ def enrich(full, agg):
     return True
 
 
+def summarize_zh(repos):
+    """Best-effort: add a Traditional-Chinese one-liner to each repo via the
+    `claude` CLI (local login, or CI with CLAUDE_CODE_OAUTH_TOKEN). One batched
+    call for all repos. Silently falls back to English-only if claude is absent."""
+    cli = shutil.which("claude")
+    if not cli:
+        print("  i no claude CLI — skipping Chinese summaries", file=sys.stderr)
+        return
+    items = [{"name": r["full_name"], "en": r.get("desc", "")} for r in repos]
+    prompt = (
+        "Below is a JSON array of GitHub repos. For EACH repo write a concise "
+        "Traditional Chinese (繁體中文，台灣用語) description of what the tool DOES — "
+        "its function in practice, not marketing fluff. Keep each to 15–40 字. "
+        "Return ONLY a JSON object mapping each exact `name` to its Chinese string. "
+        "No markdown fences, no commentary.\n\nRepos:\n"
+        + json.dumps(items, ensure_ascii=False)
+    )
+    try:
+        proc = subprocess.run(
+            [cli, "-p", "--output-format", "json", "--model", "sonnet"],
+            input=prompt, capture_output=True, text=True, timeout=240,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"claude exited {proc.returncode}: {proc.stderr.strip()[:200]}")
+        text = json.loads(proc.stdout).get("result", "") or ""
+        m = re.search(r"\{.*\}", text, re.S)   # tolerate preamble / ```json fences
+        if not m:
+            raise ValueError("no JSON object in model output")
+        mapping = json.loads(m.group(0))
+        if not isinstance(mapping, dict):
+            raise ValueError(f"expected JSON object, got {type(mapping).__name__}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! Chinese summary failed ({e}); using English only", file=sys.stderr)
+        return
+    n = 0
+    for r in repos:
+        zh = mapping.get(r["full_name"])
+        if isinstance(zh, str) and zh.strip():
+            zh = " ".join(zh.split())          # collapse stray newlines/whitespace
+            r["zh"] = zh[:120]                  # defensive cap; model is asked for ~40
+            n += 1
+    print(f"  ✓ Chinese summaries: {n}/{len(repos)}", file=sys.stderr)
+
+
 def score(agg):
     s = 0.0
     s += agg.get("stars_today", 0) * 1.0
@@ -179,7 +227,11 @@ def score(agg):
 # ------------------------------------------------------------------------------ state
 def load_seen():
     try:
-        return json.loads(SEEN_PATH.read_text())
+        data = json.loads(SEEN_PATH.read_text())
+        if not isinstance(data, dict):
+            return {}
+        # keep only numeric timestamps — tolerate a hand-edited/corrupt file
+        return {k: v for k, v in data.items() if isinstance(v, (int, float))}
     except Exception:  # noqa: BLE001
         return {}
 
@@ -187,8 +239,10 @@ def load_seen():
 def save_seen(seen):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - SEEN_TTL_DAYS * 86400
-    seen = {k: v for k, v in seen.items() if v > cutoff}
-    SEEN_PATH.write_text(json.dumps(seen))
+    seen = {k: v for k, v in seen.items() if isinstance(v, (int, float)) and v > cutoff}
+    tmp = SEEN_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(seen))
+    tmp.replace(SEEN_PATH)        # atomic — never leaves a half-written file
 
 
 # ----------------------------------------------------------------------------- render
@@ -209,7 +263,12 @@ def render_md(repos, when):
         lang = f" · {r['lang']}" if r.get("lang") else ""
         lines.append(f"### {i}. [{r['full_name']}]({r['url']})")
         lines.append(f"{star} · {meta}{lang}")
-        if r.get("desc"):
+        if r.get("zh"):
+            lines.append("")
+            lines.append(f"> {r['zh']}")
+            if r.get("desc"):
+                lines.append(f"> _{r['desc']}_")
+        elif r.get("desc"):
             lines.append("")
             lines.append(f"> {r['desc']}")
         if r.get("hn_url"):
@@ -219,23 +278,32 @@ def render_md(repos, when):
     return "\n".join(lines)
 
 
+def _inline(s):
+    """HTML-escape text, THEN convert our markdown links/italics. Escaping first
+    means a repo description containing <, >, & or quotes can't break the email."""
+    s = html_escape(s, quote=True)
+    s = re.sub(r"\[(.*?)\]\((.*?)\)", r'<a href="\2">\1</a>', s)
+    s = re.sub(r"_(.+?)_", r"<em>\1</em>", s)
+    return s
+
+
 def md_to_html(md):
     """Minimal Markdown -> HTML good enough for email clients."""
     html = []
     for line in md.split("\n"):
         if line.startswith("### "):
-            t = re.sub(r"\[(.*?)\]\((.*?)\)", r'<a href="\2">\1</a>', line[4:])
-            html.append(f"<h3>{t}</h3>")
+            html.append(f"<h3>{_inline(line[4:])}</h3>")
         elif line.startswith("# "):
-            html.append(f"<h1>{line[2:]}</h1>")
+            html.append(f"<h1>{_inline(line[2:])}</h1>")
         elif line.startswith("> "):
-            html.append(f"<blockquote>{line[2:]}</blockquote>")
+            html.append(
+                f"<blockquote style='margin:4px 0;padding-left:10px;"
+                f"border-left:3px solid #ddd;color:#333'>{_inline(line[2:])}</blockquote>"
+            )
         elif line.strip() == "":
             html.append("<br>")
         else:
-            t = re.sub(r"\[(.*?)\]\((.*?)\)", r'<a href="\2">\1</a>', line)
-            t = re.sub(r"_(.+?)_", r"<em>\1</em>", t)
-            html.append(f"<p style='margin:2px 0'>{t}</p>")
+            html.append(f"<p style='margin:2px 0'>{_inline(line)}</p>")
     return (
         "<div style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;"
         "max-width:680px;margin:auto;line-height:1.45\">" + "\n".join(html) + "</div>"
@@ -252,10 +320,15 @@ def send_email(subject, md):
         print(md)
         return False
     msg = MIMEText(md_to_html(md), "html", "utf-8")
-    msg["Subject"] = subject
-    msg["From"] = user
+    msg["Subject"] = str(Header(subject, "utf-8"))     # safe for em dash / Chinese
+    msg["From"] = formataddr(("GitHub Radar", user))
     msg["To"] = to
-    with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=30) as s:
+    try:
+        port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError:
+        port = 587
+    with smtplib.SMTP(host, port, timeout=30) as s:
+        s.ehlo()
         s.starttls()
         s.login(user, pw)
         s.sendmail(user, [to], msg.as_string())
@@ -310,6 +383,8 @@ def main():
     if not top:
         print("  nothing new today.", file=sys.stderr)
         return
+
+    summarize_zh(top)            # add Traditional-Chinese one-liners (best-effort)
 
     when = datetime.now().strftime("%Y-%m-%d")
     md = render_md(top, when)
