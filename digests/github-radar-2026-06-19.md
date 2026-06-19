@@ -3,59 +3,59 @@
 _20 new tools surfaced from GitHub Trending, Hacker News, and new-repo search._
 
 ### 1. [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-⭐ 7,452 · 🔥 2322/day · 💬 HN 2 · C
+⭐ 7,461 · 🔥 2322/day · 💬 HN 2 · C
 
 > High-performance code intelligence MCP server. Indexes codebases into a persistent knowledge graph — average repo in milliseconds. 158 languages, sub-ms queries, 99% fewer tokens. Single static binary, zero dependencies.
 
 [HN discussion](https://news.ycombinator.com/item?id=48596084)
 
 ### 2. [obra/superpowers](https://github.com/obra/superpowers)
-⭐ 232,852 · 🔥 1429/day · Shell
+⭐ 232,865 · 🔥 1429/day · Shell
 
 > An agentic skills framework & software development methodology that works.
 
 ### 3. [Kilo-Org/kilocode](https://github.com/Kilo-Org/kilocode)
-⭐ 22,554 · 🔥 1345/day · TypeScript
+⭐ 22,567 · 🔥 1345/day · TypeScript
 
 > Kilo is the all-in-one agentic engineering platform. Build, ship, and iterate faster with the most popular open source coding agent.
 
 ### 4. [google-research/timesfm](https://github.com/google-research/timesfm)
-⭐ 23,758 · 🔥 844/day · Python
+⭐ 23,779 · 🔥 844/day · Python
 
 > TimesFM (Time Series Foundation Model) is a pretrained time-series foundation model developed by Google Research for time-series forecasting.
 
 ### 5. [makeplane/plane](https://github.com/makeplane/plane)
-⭐ 51,998 · 🔥 613/day · TypeScript
+⭐ 52,000 · 🔥 613/day · TypeScript
 
 > 🔥🔥🔥 Open-source Jira, Linear, Monday, and ClickUp alternative. Plane is a modern project management platform to manage tasks, sprints, docs, and triage.
 
 ### 6. [freeCodeCamp/freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)
-⭐ 449,725 · 🔥 417/day · TypeScript
+⭐ 449,730 · 🔥 417/day · TypeScript
 
 > freeCodeCamp.org's open-source codebase and curriculum. Learn math, programming, and computer science for free.
 
 ### 7. [n0-computer/iroh](https://github.com/n0-computer/iroh)
-⭐ 10,125 · 🔥 369/day · Rust
+⭐ 10,128 · 🔥 369/day · Rust
 
 > IP addresses break, dial keys instead. Modular networking stack in Rust.
 
 ### 8. [alibaba/zvec](https://github.com/alibaba/zvec)
-⭐ 11,429 · 🔥 259/day · C++
+⭐ 11,434 · 🔥 259/day · C++
 
 > A lightweight, lightning-fast, in-process vector database
 
 ### 9. [Universal-Debloater-Alliance/universal-android-debloater-next-generation](https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation)
-⭐ 8,026 · 🔥 244/day · Rust
+⭐ 8,029 · 🔥 244/day · Rust
 
 > Cross-platform GUI written in Rust using ADB to debloat non-rooted Android devices. Improve your privacy, the security and battery life of your device.
 
 ### 10. [zai-org/GLM-5](https://github.com/zai-org/GLM-5)
-⭐ 4,330 · 🔥 202/day
+⭐ 4,331 · 🔥 202/day
 
 > GLM-5: From Vibe Coding to Agentic Engineering
 
 ### 11. [withastro/flue](https://github.com/withastro/flue)
-⭐ 5,616 · 🔥 162/day · TypeScript
+⭐ 5,618 · 🔥 162/day · TypeScript
 
 > The sandbox agent framework.
 
@@ -65,27 +65,27 @@ _20 new tools surfaced from GitHub Trending, Hacker News, and new-repo search._
 > Official Python inference and LoRA trainer package for the LTX-2 audio–video generative model.
 
 ### 13. [LibreTranslate/LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)
-⭐ 15,101 · 🔥 51/day · Python
+⭐ 15,105 · 🔥 51/day · Python
 
 > Free and Open Source Machine Translation API. Self-hosted, offline capable and easy to setup.
 
 ### 14. [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)
-⭐ 38,539 · 🆕 new · JavaScript
+⭐ 38,599 · 🆕 new · JavaScript
 
 > Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote.
 
 ### 15. [XiaomiMiMo/MiMo-Code](https://github.com/XiaomiMiMo/MiMo-Code)
-⭐ 9,857 · 🆕 new · TypeScript
+⭐ 9,858 · 🆕 new · TypeScript
 
 > MiMo Code: Where Models and Agents Co-Evolve
 
 ### 16. [shadcn/improve](https://github.com/shadcn/improve)
-⭐ 5,553 · 🆕 new
+⭐ 5,558 · 🆕 new
 
 > Use your most capable model to audit your codebase and write plans for cheaper models to execute.
 
 ### 17. [omnigent-ai/omnigent](https://github.com/omnigent-ai/omnigent)
-⭐ 3,910 · 🆕 new · Python
+⭐ 3,912 · 🆕 new · Python
 
 > Omnigent is an open-source AI agent framework and meta-harness: orchestrate Claude Code, Codex, Cursor, Pi, and custom agents — swap harnesses without rewriting, enforce policies and sandboxing, and collaborate in real time from any device.
 
@@ -97,7 +97,7 @@ _20 new tools surfaced from GitHub Trending, Hacker News, and new-repo search._
 [HN discussion](https://news.ycombinator.com/item?id=48588199)
 
 ### 19. [Kong/insomnia](https://github.com/Kong/insomnia)
-⭐ 38,788 · 🔥 18/day · TypeScript
+⭐ 38,790 · 🔥 18/day · TypeScript
 
 > The open-source, cross-platform API client for GraphQL, REST, WebSockets, SSE and gRPC. With Cloud, Local and Git storage.
 
