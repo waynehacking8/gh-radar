@@ -1,0 +1,49 @@
+name: gh-radar
+
+# Runs on GitHub's servers (your laptop can be off). Collects trending GitHub
+# tools from GitHub Trending + Hacker News + GitHub Search, emails you a ranked
+# digest, commits a browsable copy to digests/, and persists the de-dup memory
+# in state/ so you never see the same repo twice.
+#
+# One-time setup — Repo → Settings → Secrets and variables → Actions → add:
+#   GMAIL_USER          your gmail address          (required for email)
+#   GMAIL_APP_PASSWORD  a Gmail App Password         (required for email)
+# GITHUB_TOKEN is provided automatically by Actions (lifts API limit to 5000/hr).
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 00:00 UTC daily (08:00 Taipei)
+  workflow_dispatch: {}    # also runnable on-demand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect signal + email digest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.GMAIL_USER }}
+          SMTP_PASS: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.GMAIL_USER }}
+          GH_RADAR_HOME: state            # de-dup memory -> state/seen.json
+          GH_RADAR_DIGEST_DIR: digests     # browsable archive -> digests/*.md
+        run: python radar.py
+
+      - name: Commit digest archive + de-dup memory
+        run: |
+          git config user.name "gh-radar[bot]"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f digests/ state/
+          git commit -m "radar: digest for $(date -u +%F)" || { echo "nothing new"; exit 0; }
+          git push

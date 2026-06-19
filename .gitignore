@@ -1,0 +1,11 @@
+config.env
+.env
+radar.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+# state/ and digests/ are force-added by the CI workflow (git add -f);
+# ignored here so local test runs don't create noisy commits.
+state/
+digests/
