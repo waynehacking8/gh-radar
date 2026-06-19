@@ -44,6 +44,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Optional sources — self-disable if the secret is unset:
+          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}     # X (twitterapi.io)
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}       # Reddit
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           SMTP_HOST: smtp.gmail.com
           SMTP_PORT: "587"
           SMTP_USER: ${{ secrets.GMAIL_USER }}

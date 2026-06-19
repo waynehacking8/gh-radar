@@ -7,18 +7,26 @@ is the cron job that makes sure you find the next one. Every morning it pulls
 the tools that are trending and being discussed, dedupes them, drops the ones
 you've already seen, and emails you a ranked digest.
 
-It deliberately does **not** scrape X/Twitter. The X API costs $200/mo and
-logged-in scraping is fragile and against ToS. Instead it reads the places those
-same tools surface — which have clean, free, stable APIs:
+It reads the places tools surface, across many angles. The first four sources
+are free and need no keys; the last two are optional and self-disable until you
+add a key:
 
-| Source | Signal | How |
-|---|---|---|
-| GitHub Trending | star velocity ("hot today") | public HTML |
-| Hacker News | what devs are discussing | Algolia API (free) |
-| GitHub Search | brand-new repos gaining stars | official API |
+| Source | Signal | How | Key |
+|---|---|---|---|
+| GitHub Trending | star velocity — daily + **weekly** + per-language | public HTML | — |
+| Hacker News | what devs are discussing now | Algolia API | — |
+| GitHub Search | brand-new repos gaining stars | official API | — |
+| Lobsters | curated programming community | hottest.json | — |
+| Reddit | r/commandline, r/selfhosted, … | OAuth API | `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` |
+| X / Twitter | tools shared by curated accounts | [twitterapi.io](https://twitterapi.io) | `TWITTERAPI_IO_KEY` |
 
-Each repo is scored (HN discussion weighted highest, novelty bonus, multi-source
-bonus), and a 14-day memory stops the same repo showing up every day.
+The X layer is the only one that catches an *already-popular* tool being
+**re-shared** (the "I saw it on X" case). The weekly Trending window catches
+tools that stay hot all week, not just a one-day spike.
+
+Each repo is scored (HN/X discussion weighted highest, novelty bonus, multi-source
+bonus), and a 14-day memory stops the same repo showing up every day. Any single
+source can fail or be disabled without affecting the rest.
 
 ## Run it on GitHub Actions (recommended — laptop can be off)
 

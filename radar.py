@@ -30,6 +30,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from email.header import Header
@@ -51,6 +52,37 @@ SKIP_NAME_RE = re.compile(
     r"build-your-own|coding-interview|system-design|the-book|-book$|cheatsheet)",
     re.I,
 )
+
+# github.com paths that are not user/repo (avoid treating /features/x as a repo).
+SKIP_OWNERS = {
+    "features", "about", "topics", "marketplace", "sponsors", "orgs", "blog",
+    "collections", "login", "join", "settings", "notifications", "search",
+    "pulls", "issues", "explore", "trending", "apps", "customer-stories",
+    "readme", "site", "enterprise", "pricing", "security", "contact",
+}
+SKIP_REPO_SECONDS = {
+    "blob", "tree", "releases", "issues", "pull", "pulls", "wiki", "actions",
+    "commits", "compare", "tags", "branches", "discussions",
+}
+
+GITHUB_RE = re.compile(r"(?<!gist\.)github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)")
+
+
+def repos_in(text):
+    """Yield clean 'owner/repo' full names found anywhere in a blob of text."""
+    seen = set()
+    for owner, repo in GITHUB_RE.findall(text or ""):
+        repo = repo.removesuffix(".git")
+        if owner.lower() in SKIP_OWNERS or repo.lower() in SKIP_REPO_SECONDS:
+            continue
+        full = f"{owner}/{repo}"
+        if full not in seen:
+            seen.add(full)
+            yield full
+
+
+def _split_env(name, default):
+    return [x.strip() for x in os.environ.get(name, default).split(",") if x.strip()]
 
 
 # ----------------------------------------------------------------------------- http
@@ -79,14 +111,12 @@ def gh_api(path):
 
 
 # --------------------------------------------------------------------------- sources
-def src_github_trending():
-    """Scrape github.com/trending. Returns {full_name: {stars_today, desc, stars}}."""
-    out = {}
-    try:
-        html = http_get("https://github.com/trending")
-    except Exception as e:  # noqa: BLE001
-        print(f"  ! trending fetch failed: {e}", file=sys.stderr)
-        return out
+# Trending pages to scrape: global daily + global weekly + a few languages.
+# Weekly catches tools that stay hot all week (not just a one-day spike).
+TREND_LANGS = _split_env("GH_RADAR_TREND_LANGS", "python,rust,go,typescript,c++,javascript")
+
+
+def _parse_trending(html, out):
     for block in html.split('<article class="Box-row">')[1:]:
         m = re.search(r'href="/([^"/]+)/([^"/]+)/stargazers"', block)
         if not m:
@@ -100,11 +130,32 @@ def src_github_trending():
         sm = re.search(r'/stargazers"[^>]*>\s*([\d,]+)', block)
         if sm:
             stars = int(sm.group(1).replace(",", ""))
-        today = 0
-        tm = re.search(r"([\d,]+)\s+stars today", block)
+        velocity = 0
+        # "N stars today" (daily) or "N stars this week" (weekly view)
+        tm = re.search(r"([\d,]+)\s+stars (?:today|this week|this month)", block)
         if tm:
-            today = int(tm.group(1).replace(",", ""))
-        out[full] = {"stars_today": today, "desc": desc, "stars": stars}
+            velocity = int(tm.group(1).replace(",", ""))
+        prev = out.get(full, {})
+        out[full] = {
+            "stars_today": max(velocity, prev.get("stars_today", 0)),
+            "desc": prev.get("desc") or desc,
+            "stars": max(stars, prev.get("stars", 0)),
+        }
+
+
+def src_github_trending():
+    """Scrape github.com/trending across windows + languages -> {full_name: {...}}."""
+    out = {}
+    pages = [
+        "https://github.com/trending?since=daily",
+        "https://github.com/trending?since=weekly",
+    ]
+    pages += [f"https://github.com/trending/{lang}?since=daily" for lang in TREND_LANGS]
+    for url in pages:
+        try:
+            _parse_trending(http_get(url), out)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! trending fetch failed ({url}): {e}", file=sys.stderr)
     return out
 
 
@@ -123,19 +174,11 @@ def src_hacker_news():
         return out
     for h in data.get("hits", []):
         link = h.get("url") or ""
-        if "gist.github.com" in link:        # gists are not repos
-            continue
-        m = re.search(r"(?<!gist\.)github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", link)
-        if not m:
-            continue
-        owner, repo = m.group(1), m.group(2).removesuffix(".git")
-        if owner in ("features", "about", "topics", "marketplace", "sponsors"):
-            continue
-        full = f"{owner}/{repo}"
         points = h.get("points") or 0
         hn_url = f"https://news.ycombinator.com/item?id={h.get('objectID')}"
-        if full not in out or points > out[full]["hn_points"]:
-            out[full] = {"hn_points": points, "hn_url": hn_url}
+        for full in repos_in(link):
+            if full not in out or points > out[full]["hn_points"]:
+                out[full] = {"hn_points": points, "hn_url": hn_url}
     return out
 
 
@@ -152,6 +195,111 @@ def src_github_new():
         return out
     for it in data.get("items", []):
         out[it["full_name"]] = {"new_repo": True, "created": it.get("created_at", cutoff)}
+    return out
+
+
+def src_lobsters():
+    """Github repos linked from the Lobsters hottest feed. {full_name: {lobsters_*}}."""
+    out = {}
+    try:
+        data = json.loads(http_get("https://lobste.rs/hottest.json"))
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! lobsters fetch failed: {e}", file=sys.stderr)
+        return out
+    for s in data:
+        link = s.get("url") or ""
+        c_url = s.get("comments_url") or s.get("short_id_url") or link
+        pts = s.get("score") or 0
+        for full in repos_in(link):
+            if full not in out or pts > out[full]["lobsters_score"]:
+                out[full] = {"lobsters_score": pts, "lobsters_url": c_url}
+    return out
+
+
+def src_reddit():
+    """Github repos surfaced in tool-discovery subreddits. Optional: needs a Reddit
+    app (REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET) since anonymous JSON is now blocked.
+    Returns {full_name: {reddit_points, reddit_url, reddit_sub}}; {} if not configured."""
+    cid = os.environ.get("REDDIT_CLIENT_ID")
+    secret = os.environ.get("REDDIT_CLIENT_SECRET")
+    if not (cid and secret):
+        print("  i reddit disabled (set REDDIT_CLIENT_ID/SECRET to enable)", file=sys.stderr)
+        return {}
+    subs = _split_env(
+        "GH_RADAR_SUBREDDITS",
+        "commandline,selfhosted,opensource,coolgithubprojects,golang,rust,programming",
+    )
+    out = {}
+    try:  # app-only OAuth (client_credentials)
+        import base64
+        auth = base64.b64encode(f"{cid}:{secret}".encode()).decode()
+        body = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode()
+        req = urllib.request.Request(
+            "https://www.reddit.com/api/v1/access_token", data=body,
+            headers={"Authorization": f"Basic {auth}", "User-Agent": UA},
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            token = json.loads(r.read().decode())["access_token"]
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! reddit auth failed: {e}", file=sys.stderr)
+        return out
+    for sub in subs:
+        try:
+            url = f"https://oauth.reddit.com/r/{sub}/top?t=day&limit=25"
+            data = json.loads(http_get(
+                url, headers={"Authorization": f"Bearer {token}"}))
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! reddit r/{sub} failed: {e}", file=sys.stderr)
+            continue
+        for child in data.get("data", {}).get("children", []):
+            p = child.get("data", {})
+            pts = p.get("ups") or p.get("score") or 0
+            permalink = "https://reddit.com" + p.get("permalink", "")
+            blob = f"{p.get('url','')} {p.get('selftext','')} {p.get('title','')}"
+            for full in repos_in(blob):
+                if full not in out or pts > out[full]["reddit_points"]:
+                    out[full] = {"reddit_points": pts, "reddit_url": permalink,
+                                 "reddit_sub": sub}
+    return out
+
+
+def src_x():
+    """Github repos shared by a curated set of X accounts, via twitterapi.io.
+    Optional: needs TWITTERAPI_IO_KEY. This is the only source that catches an
+    already-popular tool being *re-shared* on X (the 'mempalace' case). Mirrors
+    content-radar's collector. Returns {full_name: {x_mentions, x_by, x_url, x_likes}}."""
+    key = os.environ.get("TWITTERAPI_IO_KEY")
+    if not key:
+        print("  i X disabled (set TWITTERAPI_IO_KEY to enable)", file=sys.stderr)
+        return {}
+    accounts = _split_env(
+        "GH_RADAR_X_ACCOUNTS",
+        "karpathy,swyx,_philschmid,simonw,reach_vb,omarsar0,clementdelangue,"
+        "vllm_project,ggerganov,jeremyphoward",
+    )
+    out = {}
+    for user in accounts:
+        try:
+            url = ("https://api.twitterapi.io/twitter/user/last_tweets?"
+                   + urllib.parse.urlencode({"userName": user, "includeReplies": "false"}))
+            data = json.loads(http_get(url, headers={"X-API-Key": key}))
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! X @{user} failed: {e}", file=sys.stderr)
+            continue
+        tweets = data.get("tweets") or data.get("data") or []
+        if isinstance(tweets, dict):
+            tweets = tweets.get("tweets", [])
+        for tw in tweets:
+            likes = int(tw.get("likeCount") or tw.get("favorite_count") or 0)
+            turl = tw.get("url") or ""
+            for full in repos_in(json.dumps(tw)):   # scans text + expanded urls
+                e = out.setdefault(
+                    full, {"x_mentions": 0, "x_by": [], "x_url": turl, "x_likes": 0})
+                e["x_mentions"] += 1
+                if user not in e["x_by"]:
+                    e["x_by"].append(user)
+                if likes >= e["x_likes"]:
+                    e["x_likes"], e["x_url"] = likes, (turl or e["x_url"])
     return out
 
 
@@ -218,6 +366,9 @@ def score(agg):
     s = 0.0
     s += agg.get("stars_today", 0) * 1.0
     s += agg.get("hn_points", 0) * 2.0          # HN discussion weighted higher
+    s += min(agg.get("x_mentions", 0), 5) * 8   # shared by curated X accounts
+    s += min(agg.get("reddit_points", 0), 1000) * 0.02
+    s += min(agg.get("lobsters_score", 0), 200) * 0.3
     s += 40 if agg.get("new_repo") else 0       # novelty bonus
     s += min(agg.get("stars", 0), 5000) * 0.01  # mild popularity tiebreak
     s += 15 * len(agg.get("sources", []))       # multi-source = stronger signal
@@ -247,16 +398,28 @@ def save_seen(seen):
 
 # ----------------------------------------------------------------------------- render
 def render_md(repos, when):
+    used = sorted({s for r in repos for s in r["sources"]})
+    names = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
+             "lobsters": "Lobsters", "reddit": "Reddit", "x": "X"}
+    pretty = ", ".join(names.get(s, s) for s in used)
     lines = [f"# GitHub Radar — {when}", ""]
-    lines.append(f"_{len(repos)} new tools surfaced from GitHub Trending, Hacker News, and new-repo search._")
+    lines.append(f"_{len(repos)} new tools surfaced from {pretty}._")
     lines.append("")
     for i, r in enumerate(repos, 1):
+        src = r["sources"]
         tags = []
-        if "trending" in r["sources"]:
+        if "trending" in src:
             tags.append(f"🔥 {r.get('stars_today', 0)}/day")
-        if "hn" in r["sources"]:
+        if "x" in src:
+            by = ", ".join("@" + h for h in r.get("x_by", [])[:2])
+            tags.append(f"𝕏 {by}" if by else "𝕏 shared")
+        if "hn" in src:
             tags.append(f"💬 HN {r.get('hn_points', 0)}")
-        if "new" in r["sources"]:
+        if "reddit" in src:
+            tags.append(f"👽 r/{r.get('reddit_sub', '')} {r.get('reddit_points', 0)}")
+        if "lobsters" in src:
+            tags.append(f"🦞 {r.get('lobsters_score', 0)}")
+        if "new" in src:
             tags.append("🆕 new")
         meta = " · ".join(tags)
         star = f"⭐ {r.get('stars', 0):,}"
@@ -271,9 +434,18 @@ def render_md(repos, when):
         elif r.get("desc"):
             lines.append("")
             lines.append(f"> {r['desc']}")
+        refs = []
+        if r.get("x_url"):
+            refs.append(f"[X post]({r['x_url']})")
         if r.get("hn_url"):
+            refs.append(f"[HN]({r['hn_url']})")
+        if r.get("reddit_url"):
+            refs.append(f"[Reddit]({r['reddit_url']})")
+        if r.get("lobsters_url"):
+            refs.append(f"[Lobsters]({r['lobsters_url']})")
+        if refs:
             lines.append("")
-            lines.append(f"[HN discussion]({r['hn_url']})")
+            lines.append(" · ".join(refs))
         lines.append("")
     return "\n".join(lines)
 
@@ -339,24 +511,26 @@ def send_email(subject, md):
 # ------------------------------------------------------------------------------- main
 def main():
     print("gh-radar: collecting…", file=sys.stderr)
-    trending = src_github_trending()
-    print(f"  trending: {len(trending)} repos", file=sys.stderr)
-    hn = src_hacker_news()
-    print(f"  hacker news: {len(hn)} repos", file=sys.stderr)
-    new = src_github_new()
-    print(f"  new repos: {len(new)} repos", file=sys.stderr)
-
-    # Merge all sources keyed by full_name.
+    # (label, collector) — optional sources self-disable when their key is absent.
+    sources = [
+        ("trending", src_github_trending),
+        ("hn", src_hacker_news),
+        ("new", src_github_new),
+        ("lobsters", src_lobsters),
+        ("reddit", src_reddit),
+        ("x", src_x),
+    ]
     agg = {}
-    for full, d in trending.items():
-        agg.setdefault(full, {"sources": []})["sources"].append("trending")
-        agg[full].update(d)
-    for full, d in hn.items():
-        agg.setdefault(full, {"sources": []})["sources"].append("hn")
-        agg[full].update(d)
-    for full, d in new.items():
-        agg.setdefault(full, {"sources": []})["sources"].append("new")
-        agg[full].update(d)
+    for label, fn in sources:
+        try:
+            result = fn() or {}
+        except Exception as e:  # noqa: BLE001 — one bad source must not sink the rest
+            print(f"  ! source {label} crashed: {e}", file=sys.stderr)
+            result = {}
+        print(f"  {label}: {len(result)} repos", file=sys.stderr)
+        for full, d in result.items():
+            agg.setdefault(full, {"sources": []})["sources"].append(label)
+            agg[full].update(d)
 
     seen = load_seen()
     now = time.time()
@@ -378,7 +552,7 @@ def main():
         candidates.append(a)
 
     candidates.sort(key=lambda x: x["_score"], reverse=True)
-    top = candidates[:20]
+    top = candidates[:int(os.environ.get("GH_RADAR_MAX_ITEMS", "25"))]
 
     if not top:
         print("  nothing new today.", file=sys.stderr)
