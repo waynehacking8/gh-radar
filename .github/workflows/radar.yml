@@ -86,3 +86,20 @@ jobs:
             echo "push race — retry $i/5…"; sleep $((i * 2))
           done
           echo "push failed after retries"; exit 1
+
+      # Dead-man's-switch: ping Healthchecks.io so a *dropped* scheduled run (GitHub
+      # silently not firing the cron) is detectable — if no success ping arrives
+      # within the period+grace you set, Healthchecks alerts you. A run that fired
+      # but broke pings /fail for an immediate alert. Both are no-ops if the
+      # HEALTHCHECK_URL secret is unset, so the workflow still works without it.
+      - name: Ping healthcheck — success
+        if: success()
+        env:
+          HC: ${{ secrets.HEALTHCHECK_URL }}
+        run: '[ -n "$HC" ] && curl -fsS -m 10 --retry 3 "$HC" >/dev/null || echo "no HEALTHCHECK_URL secret — skipping ping"'
+
+      - name: Ping healthcheck — failure
+        if: failure()
+        env:
+          HC: ${{ secrets.HEALTHCHECK_URL }}
+        run: '[ -n "$HC" ] && curl -fsS -m 10 --retry 3 "$HC/fail" >/dev/null || echo "no HEALTHCHECK_URL secret — skipping ping"'
