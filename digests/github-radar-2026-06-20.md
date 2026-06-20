@@ -1,415 +1,407 @@
 # GitHub Radar — 2026-06-20
 
-_50 new tools surfaced from Hacker News, Trending, X._
+_50 new tools surfaced from Hacker News, new repos, Trending._
 
-### 1. [chopratejas/headroom](https://github.com/chopratejas/headroom)
-⭐ 39,057 · 🔥 12793/day · Python
+### 1. [asheshgoplani/agent-deck](https://github.com/asheshgoplani/agent-deck)
+⭐ 284 · 🔥 131/day · Go
 
-> 在 LLM 接收輸入之前，先對工具輸出、日誌、檔案與 RAG 片段進行壓縮，宣稱可減少 60–95% 的 token 用量，同時維持相同的回答品質。支援函式庫、Proxy 與 MCP Server 三種整合方式，無論直接嵌入應用或作為中介層皆可使用。對於 API 成本敏感或上下文視窗吃緊的工作流程，這類前置壓縮機制正受到越來越多開發者的關注。
-> _Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 60-95% fewer tokens, same answers. Library, proxy, MCP server._
-
-📍 出處 / via: GitHub Trending
-
-### 2. [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach)
-⭐ 35,194 · 🔥 8324/day · Python
-
-> 讓 AI Agent 能夠透過單一 CLI 存取 Twitter、Reddit、YouTube、GitHub、Bilibili、小紅書等多個平台，無需各平台 API 金鑰，也不需額外付費。這解決了構建需要即時網路資訊的 Agent 工作流程時，多平台接入繁瑣且費用高昂的痛點。對於希望賦予 Agent 真正網路視野的開發者，這是一個低門檻的整合選項。
-> _Give your AI agent eyes to see the entire internet. Read & search Twitter, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu — one CLI, zero API fees._
+> agent-deck 是一款終端機工作階段管理器，以單一 TUI 介面統管 Claude、Gemini、OpenCode、Codex 等多款 AI 編碼代理。當開發者同時仰賴多個 AI 工具進行開發時，視窗切換與輸出追蹤往往相當繁瑣；這個工具提供統一的操作界面，讓所有代理的狀態一覽無遺。它填補了 AI 工具快速增生後缺乏整合管理層的空白。
+> _Terminal session manager for AI coding agents. One TUI for Claude, Gemini, OpenCode, Codex, and more._
 
 📍 出處 / via: GitHub Trending
 
-### 3. [iptv-org/iptv](https://github.com/iptv-org/iptv)
-⭐ 125,850 · 🔥 8035/day · TypeScript
+### 2. [anomalyco/opentui](https://github.com/anomalyco/opentui)
+⭐ 12,062 · 🔥 77/day · TypeScript
 
-> 整理並維護全球各地公開可用的 IPTV 頻道清單，涵蓋新聞、娛樂、體育等多種類型，使用者可直接載入相容播放器收看。這個社群協作的開源專案持續更新頻道資料，是自架媒體伺服器或測試 IPTV 客戶端時的常用公開資源。對於想以合法公開來源收看各國直播頻道的使用者，這是目前規模最大的公開索引之一。
-> _Collection of publicly available IPTV channels from all over the world_
-
-📍 出處 / via: GitHub Trending
-
-### 4. [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)
-⭐ 63,458 · 🔥 7170/day · Shell
-
-> 針對 AI 程式碼代理（coding agent）設計的生產等級工程技能集，目標是讓代理具備更貼近真實軟體開發流程所需的能力。由知名工程師 Addy Osmani 整理發布，試圖填補通用 LLM 與實際工程任務之間的落差。隨著 AI 輔助開發工具快速普及，可複用的 Agent 技能模組正成為開發社群關注的新型基礎設施。
-> _Production-grade engineering skills for AI coding agents._
+> OpenTUI 是一套用於建構終端使用者介面的函式庫，讓開發者能在命令列環境中打造具備互動性的文字介面應用程式。在 CLI 工具需求隨 AI 代理工具興起而升溫的當下，擁有易於上手的 TUI 建構基礎設施愈發重要。OpenTUI 提供了一個現代化的選擇，適合想讓終端工具更具操作性的開發者。
+> _OpenTUI is a library for building terminal user interfaces (TUIs)_
 
 📍 出處 / via: GitHub Trending
 
-### 5. [NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector)
-⭐ 8,352 · 🔥 5026/day · Python
+### 3. [Adam-CAD/CADAM](https://github.com/Adam-CAD/CADAM)
+⭐ 4,535 · 🔥 81/day · TypeScript
 
-> NVIDIA 推出的安全掃描工具，專門針對 AI Agent 的技能（skill）進行分析，偵測潛在漏洞、惡意行為模式與安全風險。隨著可插拔 Agent 技能生態系快速成長，確保第三方技能的安全性成為迫切問題。SkillSpector 的出現，反映出業界開始正視 Agent 工具鏈中的供應鏈安全議題。
-> _Security scanner for AI agent skills. Detect vulnerabilities, malicious patterns, and security risks._
-
-📍 出處 / via: GitHub Trending
-
-### 6. [apple/container](https://github.com/apple/container)
-⭐ 38,886 · 🔥 4492/day · Swift
-
-> Apple 官方推出的工具，讓 Mac 使用者能以輕量虛擬機器的方式在本機建立並執行 Linux 容器，以 Swift 撰寫並針對 Apple Silicon 最佳化。這是 Apple 原生支援的容器化解決方案，不依賴第三方執行環境。對於在 Apple Silicon Mac 上進行容器化開發的工程師，這提供了一個由官方直接維護的替代選項。
-> _A tool for creating and running Linux containers using lightweight virtual machines on a Mac. It is written in Swift, and optimized for Apple silicon._
+> CADAM 是一款開源的文字轉 CAD 網頁應用程式，使用者透過自然語言描述即可生成 CAD 設計。對於不熟悉 AutoCAD 等傳統工具的工程師或原型設計者，這大幅降低了建模的入門門檻。在 AI 生成設計逐漸落地的背景下，將語言模型直接銜接至工程建模格式的嘗試正受到社群廣泛關注。
+> _CADAM is the open source text-to-CAD web application_
 
 📍 出處 / via: GitHub Trending
 
-### 7. [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp)
-⭐ 8,387 · 🔥 4212/day · 💬 HN 3 · C
+### 4. [rustdesk/rustdesk](https://github.com/rustdesk/rustdesk)
+⭐ 116,506 · 🔥 75/day · Rust
 
-> 高效能的程式碼智慧 MCP Server，能將整個程式碼庫索引成持久化知識圖譜，支援 158 種程式語言，查詢延遲在毫秒以下，宣稱可減少 99% 的 token 用量。以單一靜態執行檔發布，無需任何外部依賴，部署極為簡便。這正是讓 AI 編碼助手在大型程式碼庫中維持精準上下文理解的關鍵基礎設施。
-> _High-performance code intelligence MCP server. Indexes codebases into a persistent knowledge graph — average repo in milliseconds. 158 languages, sub-ms queries, 99% fewer tokens. Single static binary, zero dependencies._
+> RustDesk 是以 Rust 打造的開源遠端桌面工具，支援自行架設伺服器，可作為 TeamViewer 的替代方案。對於重視資料隱私或處於企業合規環境的團隊，掌控全部連線流量的自架方案具有明顯優勢。隨著商業遠端桌面軟體的授權政策持續調整，RustDesk 在開發者社群中的關注度也持續攀升。
+> _An open-source remote desktop application designed for self-hosting, as an alternative to TeamViewer._
+
+📍 出處 / via: GitHub Trending
+
+### 5. [zed-industries/zed](https://github.com/zed-industries/zed)
+⭐ 85,620 · 🔥 72/day · Rust
+
+> Zed 是由 Atom 與 Tree-sitter 原班開發者打造的高效能多人協作程式碼編輯器，以 Rust 實作並以低延遲為核心設計目標。它支援多人即時協作，並持續強化 AI 輔助編碼功能，吸引追求速度的開發者目光。在 VS Code 主導市場多年後，Zed 正逐漸成為效能導向開發者值得認真考慮的替代選項。
+> _Code at the speed of thought – Zed is a high-performance, multiplayer code editor from the creators of Atom and Tree-sitter._
+
+📍 出處 / via: GitHub Trending
+
+### 6. [nodejs/node](https://github.com/nodejs/node)
+⭐ 117,880 · 🔥 48/day · 💬 HN 4 · JavaScript
+
+> 最新 Node.js 更新導致 node-fetch 出現相容性問題，在社群掀起廣泛討論。node-fetch 長期是 Node.js 環境中使用 Fetch API 的常見方案，但隨著 Node.js 內建 fetch 實作日趨成熟，兩者之間的行為差異開始造成踩雷。建議在升版前先確認專案的 fetch 使用方式，避免服務意外中斷。
+> _Node.js JavaScript runtime ✨🐢🚀✨_
 
 📍 出處 / via: GitHub Trending · Hacker News
 
-[HN](https://news.ycombinator.com/item?id=48596084)
+[HN](https://news.ycombinator.com/item?id=48596801)
 
-### 8. [freeCodeCamp/freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)
-⭐ 449,833 · 🔥 3232/day · TypeScript
+### 7. [1jehuang/jcode](https://github.com/1jehuang/jcode)
+⭐ 7,263 · 🔥 70/day · Rust
 
-> freeCodeCamp 是全球規模最大的免費程式學習平台之一，提供數學、程式設計與資訊科學的完整開源課程，完全免費且持續維護。課程從基礎 HTML 到機器學習皆有涵蓋，並設有互動式練習與認證，數百萬名學習者透過此平台自學轉職。作為持續演進的開源專案，它也是許多人累積開源貢獻經驗的入門場所。
-> _freeCodeCamp.org's open-source codebase and curriculum. Learn math, programming, and computer science for free._
-
-📍 出處 / via: GitHub Trending
-
-### 9. [phuryn/pm-skills](https://github.com/phuryn/pm-skills)
-⭐ 19,863 · 🔥 3025/day
-
-> 針對產品經理（PM）設計的 Agentic 技能市集，收錄超過 100 個技能、指令與外掛，涵蓋產品探索、策略規劃、執行、上線到成長等各階段工作。隨著 AI Agent 在產品管理流程中的應用日趨成熟，專屬 PM 的可複用技能模組開始引發社群關注。這個專案試圖為 PM 的日常工作提供一套系統化的 AI 輔助工具集。
-> _PM Skills Marketplace: 100+ agentic skills, commands, and plugins — from discovery to strategy, execution, launch, and growth._
+> jcode 是一個 AI 編碼代理的執行框架（Harness），提供驅動代理完成程式碼任務所需的基礎結構。在 AI 代理工具快速增生的當下，如何可靠地執行、約束並觀測代理行為是工程上的核心挑戰，jcode 嘗試以標準化的執行環境來應對。雖仍處於早期階段，但其切入角度與社群對代理可靠性的關注高度吻合。
+> _Coding Agent Harness_
 
 📍 出處 / via: GitHub Trending
 
-### 10. [lfnovo/open-notebook](https://github.com/lfnovo/open-notebook)
-⭐ 31,847 · 🔥 2381/day · TypeScript
+### 8. [fastapi/fastapi](https://github.com/fastapi/fastapi)
+⭐ 99,416 · 🔥 64/day · Python
 
-> Google NotebookLM 的開源替代實作，提供更多彈性與功能擴充空間。NotebookLM 以能針對上傳文件進行深度問答而廣受關注，但其封閉性讓開發者難以客製化或自行架設。open-notebook 試圖填補這個空缺，讓使用者能在自有環境中部署功能相近的筆記型 AI 助理。
-> _An Open Source implementation of Notebook LM with more flexibility and features_
-
-📍 出處 / via: GitHub Trending
-
-### 11. [chatwoot/chatwoot](https://github.com/chatwoot/chatwoot)
-⭐ 32,727 · 🔥 2094/day · Ruby
-
-> 開源的全通路客服平台，整合即時聊天、電子郵件支援與多種訊息管道，定位為 Intercom、Zendesk、Salesforce Service Cloud 等商業工具的替代方案。企業可自行架設，完全掌控客戶資料，避免昂貴的 SaaS 訂閱費用。對於預算有限或重視資料自主性的團隊，Chatwoot 是目前功能相對完整的開源選項之一。
-> _Open-source live-chat, email support, omni-channel desk. An alternative to Intercom, Zendesk, Salesforce Service Cloud etc. 🔥💬_
+> FastAPI 是 Python 生態中以高效能與開發速度著稱的 Web 框架，基於標準型別提示自動生成 API 文件，大幅減少樣板程式碼。它特別適合快速構建 AI 推論服務或資料 API 的後端，因此在機器學習工程師社群中廣受歡迎。持續穩居 GitHub 熱門榜，反映出 Python API 開發需求的長期活躍。
+> _FastAPI framework, high performance, easy to learn, fast to code, ready for production_
 
 📍 出處 / via: GitHub Trending
 
-### 12. [asgeirtj/system_prompts_leaks](https://github.com/asgeirtj/system_prompts_leaks)
-⭐ 43,631 · 🔥 1682/day · JavaScript
+### 9. [react/react](https://github.com/react/react)
+⭐ 245,956 · 🔥 62/day · JavaScript
 
-> 蒐集並整理了多個主流 AI 產品外洩的系統提示詞，涵蓋 Anthropic 的 Claude Fable 5、Opus 4.8、Claude Code，以及 OpenAI、Google、xAI 等旗下多款產品，並持續更新。這類資料讓研究者與開發者得以一窺商業 AI 系統的設計邏輯、行為邊界與安全設定。隨著大型語言模型競爭加劇，系統提示詞的公開外洩也成為 AI 透明度討論的重要素材。
-> _Extracted system prompts from Anthropic - Claude Fable 5, Opus 4.8, Claude Code, Claude Design. OpenAI - ChatGPT 5.5 Thinking, GPT 5.5 Instant, Codex. Google - Gemini 3.5 Flash, 3.1 Pro, Antigravity. xAI - Grok, Cursor, Copilot, VS Code, Perplexity, and more. Updated regularly._
-
-📍 出處 / via: GitHub Trending
-
-### 13. [google-research/timesfm](https://github.com/google-research/timesfm)
-⭐ 24,122 · 🔥 1510/day · Python
-
-> TimesFM 是 Google Research 推出的時間序列基礎模型，專為時間序列預測任務而設計。有別於針對特定領域訓練的傳統模型，它以預訓練基礎模型的方式，可直接應用於各種預測場景，無需大量的領域微調。這種近似「零樣本即可上手」的特性，讓需要快速建立預測系統的工程師和研究者格外關注。
-> _TimesFM (Time Series Foundation Model) is a pretrained time-series foundation model developed by Google Research for time-series forecasting._
+> React 是 Meta 開源的 JavaScript UI 函式庫，以元件化架構支援網頁與原生應用程式的介面開發。近年 Server Components 等新功能的推出正深刻改變全端開發的架構模式，社群討論持續熱絡。作為前端生態的基石之一，React 的每一次演進都牽動龐大的開發者生態系。
+> _The library for web and native user interfaces._
 
 📍 出處 / via: GitHub Trending
 
-### 14. [obra/superpowers](https://github.com/obra/superpowers)
-⭐ 233,494 · 🔥 1110/day · Shell
+### 10. [kubearmor/KubeArmor](https://github.com/kubearmor/KubeArmor)
+⭐ 2,423 · 🔥 84/day · Go
 
-> Superpowers 是一套針對代理（agentic）工作流程設計的技能框架與軟體開發方法論，試圖為 AI 協作開發提供結構化的工作方式。它著重解決開發者在使用 AI 代理時，缺乏可重用技能抽象與一致開發流程的痛點。這套方法論強調「真正能用」而非停留在概念層次，因此吸引了實際以代理輔助開發的工程師目光。
-> _An agentic skills framework & software development methodology that works._
-
-📍 出處 / via: GitHub Trending
-
-### 15. [music-assistant/server](https://github.com/music-assistant/server)
-⭐ 2,717 · 🔥 1081/day · Python
-
-> Music Assistant 是一套免費開源的媒體庫管理伺服器，能整合多個串流服務並連接各種網路音響裝置。核心伺服器需部署在持續運行的裝置上，例如 Raspberry Pi、NAS 或 Intel NUC，扮演整個音樂生態系的樞紐角色。對於想打造家庭音樂系統、卻不願依賴封閉平台的使用者而言，這是一個極具吸引力的自架選項。
-> _Music Assistant is a free, opensource Media library manager that connects to your streaming services and a wide range of connected speakers. The server is the beating heart, the core of Music Assistant and must run on an always-on device like a Raspberry Pi, a NAS or an Intel NUC or alike._
+> KubeArmor 是一套 Kubernetes 執行期資安強制系統，利用 LSM-BPF、AppArmor 等 Linux 安全模組為容器工作負載實施最小權限策略。在雲原生環境中，動態部署的容器難以用靜態規則完全覆蓋；KubeArmor 能在執行期主動攔截異常行為，提供更細緻的沙箱防護。對於在 Kubernetes 上跑生產服務的團隊，這是強化縱深防禦的實用選項。
+> _Runtime Security Enforcement System. Workload hardening/sandboxing and implementing least-permissive policies made easy leveraging LSMs (LSM-BPF, AppArmor)._
 
 📍 出處 / via: GitHub Trending
 
-### 16. [Kilo-Org/kilocode](https://github.com/Kilo-Org/kilocode)
-⭐ 22,959 · 🔥 1035/day · TypeScript
+### 11. [prometheus/prometheus](https://github.com/prometheus/prometheus)
+⭐ 64,632 · 🔥 57/day · Go
 
-> Kilo 是一套全方位的代理工程平台，定位為目前最受歡迎的開源編碼代理之一，目標是讓開發者能更快速地建置、發布與迭代產品。它以整合式開發體驗為核心，將編碼代理能力直接嵌入日常工作流程。對於想擁抱 AI 輔助開發、又希望保有開源彈性與自主掌控的團隊來說，Kilo 是值得評估的選項。
-> _Kilo is the all-in-one agentic engineering platform. Build, ship, and iterate faster with the most popular open source coding agent._
-
-📍 出處 / via: GitHub Trending
-
-### 17. [kenn-io/agentsview](https://github.com/kenn-io/agentsview)
-⭐ 2,959 · 🔥 955/day · Go
-
-> Agentsview 是一套本地優先的工具，專門用來搜尋與分析編碼代理的工作 session，並提供 token 使用量統計與洞察報告，支援 Claude Code、Codex 等超過 20 種代理。隨著開發者日常大量使用 AI 編碼工具，如何追蹤代理行為與掌握實際成本，成為一個具體的需求。Agentsview 讓開發者在本地端就能檢視自己的代理使用情況，無需將資料上傳至第三方服務。
-> _Local-first session search, analytics, insights, and token use statistics for coding agents, supporting Claude Code, Codex, and more than 20 other agents._
+> Prometheus 是雲原生生態中最廣泛採用的監控系統與時序資料庫，以拉取式指標收集與 PromQL 查詢語言讓工程師靈活分析服務健康狀態。它是 Kubernetes 原生監控的事實標準，與 Grafana 搭配已成為 SRE 團隊的標準工具組合。能持續受到關注，反映出可觀測性基礎設施在現代雲端部署中不可或缺的地位。
+> _The Prometheus monitoring system and time series database._
 
 📍 出處 / via: GitHub Trending
 
-### 18. [meshery/meshery](https://github.com/meshery/meshery)
-⭐ 11,147 · 🔥 879/day · TypeScript
+### 12. [continuedev/continue](https://github.com/continuedev/continue)
+⭐ 34,147 · 🔥 56/day · TypeScript
 
-> Meshery 是一個雲原生管理平台，提供對各種雲原生基礎設施的統一管理介面，支援多種服務網格的部署、設定與效能分析。它適合需要在複雜 Kubernetes 環境中進行治理與可視化的維運團隊。隨著雲原生生態系持續擴張，能夠跨平台統一管理的工具在 DevOps 社群中的關注度也持續上升。
-> _Meshery, the cloud native manager_
-
-📍 出處 / via: GitHub Trending
-
-### 19. [LMCache/LMCache](https://github.com/LMCache/LMCache)
-⭐ 9,419 · 🔥 876/day · Python
-
-> LMCache 是一套專為大型語言模型推論服務設計的 KV 快取加速層，旨在大幅降低推論延遲並提升吞吐量。KV 快取是 LLM 推論的核心瓶頸之一，在長文本或高並發場景下影響尤為明顯，快取命中率直接左右成本與回應速度。LMCache 針對這個痛點提出解決方案，對於需要大規模部署 LLM 推論服務的工程師來說，是值得深入評估的工具。
-> _LMCache: Supercharge Your LLM with the Fastest KV Cache Layer_
+> Continue 是一款開源 AI 編碼代理，可整合至 VS Code 與 JetBrains 等主流 IDE，讓開發者在熟悉的環境中直接使用 AI 輔助功能。不同於閉源的 GitHub Copilot，Continue 支援自訂模型後端，可接入本地模型或選擇偏好的 API 供應商，兼顧靈活性與資料隱私。對於想在開源框架上打造 AI 輔助開發流程的團隊，是值得優先評估的起點。
+> _open-source coding agent_
 
 📍 出處 / via: GitHub Trending
 
-### 20. [palmier-io/palmier-pro](https://github.com/palmier-io/palmier-pro)
-⭐ 2,011 · 🔥 756/day · Swift
+### 13. [astral-sh/ruff](https://github.com/astral-sh/ruff)
+⭐ 48,105 · 🔥 55/day · Rust
 
-> Palmier Pro 是一款專為 AI 工作流程打造的 macOS 影片編輯器，從設計之初便以 AI 輔助為核心，而非事後疊加功能。它針對需要快速生成、剪輯 AI 相關影片內容的使用場景進行優化，試圖重新定義 AI 時代的影片製作體驗。這個方向讓它在 macOS 創作者社群中引發了不少好奇與討論。
-> _macOS video editor built for AI_
-
-📍 出處 / via: GitHub Trending
-
-### 21. [cypress-io/cypress](https://github.com/cypress-io/cypress)
-⭐ 50,369 · 🔥 648/day · TypeScript
-
-> Cypress 是一套針對瀏覽器端應用程式設計的端對端測試框架，以快速、易用且穩定著稱。它提供直觀的測試撰寫介面與即時的執行視覺化，大幅降低了前端整合測試的門檻。長期以來是前端工程師進行自動化測試的主流選擇，在測試工具生態系中佔有穩固地位。
-> _Fast, easy and reliable testing for anything that runs in a browser._
+> Ruff 是以 Rust 撰寫的 Python 程式碼檢查與格式化工具，執行速度遠超傳統工具。它將 Flake8、Black 等工具的功能整合在一起，讓大型專案也能幾乎即時取得回饋。簡潔的設定與卓越的效能使它迅速成為 Python 生態圈的主流選擇。
+> _An extremely fast Python linter and code formatter, written in Rust._
 
 📍 出處 / via: GitHub Trending
 
-### 22. [puppeteer/puppeteer](https://github.com/puppeteer/puppeteer)
-⭐ 95,130 · 🔥 620/day · TypeScript
+### 14. [golang/go](https://github.com/golang/go)
+⭐ 134,833 · 🔥 55/day · Go
 
-> Puppeteer 是由 Google 維護的 JavaScript 函式庫，提供高階 API 來以程式方式控制 Chrome 和 Firefox 瀏覽器。它廣泛應用於網頁爬蟲、自動化測試、截圖生成與 PDF 匯出等場景，是 Node.js 生態系中瀏覽器自動化的重要工具。近年來持續強化對 Firefox 的支援，讓跨瀏覽器自動化變得更加便利。
-> _JavaScript API for Chrome and Firefox_
-
-📍 出處 / via: GitHub Trending
-
-### 23. [swc-project/swc](https://github.com/swc-project/swc)
-⭐ 34,068 · 🔥 545/day · Rust
-
-> SWC 是以 Rust 語言打造的高效能 Web 開發平台，主要提供 JavaScript 與 TypeScript 的快速編譯與打包功能。相較於傳統的 Babel，SWC 在編譯速度上有顯著優勢，已被 Next.js 等主流框架採用為預設編譯工具。它的出現讓前端工程師在大型專案中得以大幅縮短建置時間，是現代前端工具鏈中不可忽視的一環。
-> _Rust-based platform for the Web_
+> Go 是 Google 開發的開源程式語言，以簡潔語法與高效並發模型見長，廣泛應用於雲端基礎設施、微服務與命令列工具的開發。它在後端系統與 DevOps 工具鏈中佔有重要地位，深受工程師社群的青睞。持續迭代的版本與蓬勃的生態系讓 Go 始終保持高度關注。
+> _The Go programming language_
 
 📍 出處 / via: GitHub Trending
 
-### 24. [zai-org/GLM-5](https://github.com/zai-org/GLM-5)
-⭐ 4,623 · 🔥 480/day
+### 15. [tensorflow/tensorflow](https://github.com/tensorflow/tensorflow)
+⭐ 195,776 · 🔥 55/day · C++
 
-> GLM-5 是智譜 AI 推出的新一代語言模型，定位從「Vibe Coding」（直覺式編碼輔助）進化到「Agentic Engineering」（代理工程），強調模型在複雜工程任務中的自主規劃與執行能力。不同於純粹的對話式輔助，GLM-5 試圖讓模型能夠主動分解任務、迭代執行，真正成為工程代理。這個方向的轉變代表中文大語言模型在代理能力上的重要進展。
-> _GLM-5: From Vibe Coding to Agentic Engineering_
-
-📍 出處 / via: GitHub Trending
-
-### 25. [alibaba/zvec](https://github.com/alibaba/zvec)
-⭐ 11,652 · 🔥 389/day · C++
-
-> 阿里巴巴開源的輕量級進程內向量資料庫，設計目標是高速與零外部依賴，可直接嵌入應用程式而無需啟動獨立服務。特別適合需要語意搜尋或 RAG 場景、又不想引入重量級向量資料庫的開發者。輕巧快速的定位，讓它在 AI 應用開發的工具鏈中逐漸獲得關注。
-> _A lightweight, lightning-fast, in-process vector database_
+> TensorFlow 是 Google 推出的開源機器學習框架，支援從研究原型到生產部署的完整流程。無論是深度學習模型訓練還是邊緣裝置推論，它都提供了豐富的工具與 API。作為業界最廣泛採用的 ML 框架之一，社群與企業的持續貢獻使其熱度歷久不衰。
+> _An Open Source Machine Learning Framework for Everyone_
 
 📍 出處 / via: GitHub Trending
 
-### 26. [makeplane/plane](https://github.com/makeplane/plane)
-⭐ 52,065 · 🔥 386/day · TypeScript
+### 16. [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes)
+⭐ 123,126 · 🔥 52/day · Go
 
-> 定位為 Jira、Linear、Monday 與 ClickUp 的開源替代方案，提供任務管理、衝刺規劃、文件撰寫與問題分類等核心功能。希望自行託管、避免商業 SaaS 費用或資料外洩疑慮的工程團隊，能在此找到功能完整的現代化選擇。活躍的開源社群與持續迭代，使其在專案管理工具市場中逐漸站穩腳跟。
-> _🔥🔥🔥 Open-source Jira, Linear, Monday, and ClickUp alternative. Plane is a modern project management platform to manage tasks, sprints, docs, and triage._
-
-📍 出處 / via: GitHub Trending
-
-### 27. [public-apis/public-apis](https://github.com/public-apis/public-apis)
-⭐ 442,949 · 🔥 367/day · Python
-
-> 一份由社群長期維護的免費公開 API 總覽清單，涵蓋天氣、金融、娛樂、地圖等各類領域。開發者在做 side project 或快速原型時，可直接從中找到可用的資料來源，省去自行搜羅的時間。因條目持續增加，長期是 GitHub 上最受星標的入門參考資源之一。
-> _A collective list of free APIs_
+> Kubernetes 是容器編排的業界標準，負責在生產環境中自動化部署、擴展與管理容器化應用程式。面對複雜的微服務架構，它解決了跨叢集資源排程、自動修復與服務發現等核心難題。龐大的生態系與活躍的社群讓 Kubernetes 持續位居雲端原生領域的關注焦點。
+> _Production-Grade Container Scheduling and Management_
 
 📍 出處 / via: GitHub Trending
 
-### 28. [withastro/flue](https://github.com/withastro/flue)
-⭐ 5,870 · 🔥 309/day · TypeScript
+### 17. [vercel/next.js](https://github.com/vercel/next.js)
+⭐ 140,094 · 🔥 48/day · JavaScript
 
-> 由 Astro 團隊推出的沙盒代理框架，核心設計是讓 AI 代理在受隔離的環境中執行任務，避免對宿主系統產生非預期的副作用。隨著 AI 代理使用場景日趨複雜，如何確保執行邊界成為關鍵議題，Flue 正是針對這個痛點而生。對於需要在安全可控環境中部署代理工作流程的開發者，是值得關注的新框架。
-> _The sandbox agent framework._
-
-📍 出處 / via: GitHub Trending
-
-### 29. [pytest-dev/pytest](https://github.com/pytest-dev/pytest)
-⭐ 14,232 · 🔥 309/day · Python
-
-> Python 生態中最主流的測試框架，語法直覺，從簡單的單元測試到複雜的整合測試皆能應付。強大的 fixture 系統與豐富的插件生態，讓測試程式碼易於組織與維護。是大多數 Python 專案的標準測試基礎設施，也是新進開發者學習測試實踐的入門首選。
-> _The pytest framework makes it easy to write small tests, yet scales to support complex functional testing_
+> Next.js 是建立在 React 之上的全端框架，提供伺服器端渲染、靜態生成與 API 路由等功能，大幅簡化了現代 Web 應用程式的開發流程。它讓前端工程師能交付兼具良好 SEO 與效能的產品，適合從個人部落格到大型電商的各種規模。持續演進的架構設計讓社群討論熱度始終不減。
+> _The React Framework_
 
 📍 出處 / via: GitHub Trending
 
-### 30. [n0-computer/iroh](https://github.com/n0-computer/iroh)
-⭐ 10,266 · 🔥 302/day · Rust
+### 18. [nautechsystems/nautilus_trader](https://github.com/nautechsystems/nautilus_trader)
+⭐ 24,032 · 🔥 41/day · Rust
 
-> 以 Rust 撰寫的模組化網路堆疊，提出以密鑰取代 IP 位址進行連線的設計理念，從根本上解決 IP 位址易變動導致連線中斷的問題。這種以身份識別為基礎的連接方式，特別適合 P2P 應用、行動裝置或網路環境不穩定的場景。Rust 實作帶來記憶體安全保障，吸引對去中心化網路或邊緣運算有興趣的開發者。
-> _IP addresses break, dial keys instead. Modular networking stack in Rust._
-
-📍 出處 / via: GitHub Trending
-
-### 31. [Kong/insomnia](https://github.com/Kong/insomnia)
-⭐ 39,019 · 🔥 292/day · TypeScript
-
-> Kong 旗下的開源跨平台 API 客戶端，支援 GraphQL、REST、WebSocket、SSE 與 gRPC 等多種協議。雲端、本地與 Git 儲存模式並存，讓個人開發者到團隊皆能靈活管理 API 請求集合。作為 Postman 的開源替代，在重視隱私或偏好離線工作的開發者之間穩定累積用戶。
-> _The open-source, cross-platform API client for GraphQL, REST, WebSockets, SSE and gRPC. With Cloud, Local and Git storage._
+> Nautilus Trader 以 Rust 為核心打造，採用確定性事件驅動架構，專為生產環境的量化交易場景設計。它讓策略回測與實盤執行共用同一套程式碼邏輯，解決了高頻交易對延遲與可靠性的嚴苛要求。近期在量化交易社群中受到廣泛關注，被視為開源交易引擎中效能出眾的選項。
+> _Production-grade Rust-native trading engine with deterministic event-driven architecture_
 
 📍 出處 / via: GitHub Trending
 
-### 32. [github/spec-kit](https://github.com/github/spec-kit)
-⭐ 114,188 · 🔥 284/day · Python
+### 19. [tauri-apps/tauri](https://github.com/tauri-apps/tauri)
+⭐ 108,097 · 🔥 41/day · Rust
 
-> GitHub 官方發布的工具套件，旨在協助開發者實踐規格驅動開發（Spec-Driven Development）的工作流程。先定義規格再動手實作的方式，有助於在開發早期對齊需求，減少後期返工成本。由 GitHub 直接推出，顯示這套開發方法論正受到業界越來越廣泛的重視。
-> _💫 Toolkit to help you get started with Spec-Driven Development_
-
-📍 出處 / via: GitHub Trending
-
-### 33. [Universal-Debloater-Alliance/universal-android-debloater-next-generation](https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation)
-⭐ 8,044 · 🔥 213/day · Rust
-
-> 以 Rust 開發的跨平台圖形介面工具，透過 ADB 讓使用者在不需要 root 的情況下移除 Android 預裝應用程式。去除不必要的廠商內建軟體，能有效提升裝置效能、延長電池壽命，並縮小潛在的安全與隱私攻擊面。對於想整理新手機環境的使用者，提供了一個門檻相對低的實用方案。
-> _Cross-platform GUI written in Rust using ADB to debloat non-rooted Android devices. Improve your privacy, the security and battery life of your device._
+> Tauri 讓開發者以熟悉的 Web 前端技術打造桌面與行動應用程式，同時生成比傳統方案更小、更快、更安全的執行檔。它以 Rust 為後端核心，有效控制記憶體佔用與應用程式體積。對希望以單一技術棧同時覆蓋桌面與行動平台的開發者而言，Tauri 正快速成為熱門替代選擇。
+> _Build smaller, faster, and more secure desktop and mobile applications with a web frontend._
 
 📍 出處 / via: GitHub Trending
 
-### 34. [Lightricks/LTX-2](https://github.com/Lightricks/LTX-2)
-⭐ 7,691 · 🔥 196/day · Python
+### 20. [X11Libre/xserver](https://github.com/X11Libre/xserver)
+⭐ 4,640 · 💬 HN 22 · C
 
-> Lightricks 釋出的 LTX-2 官方 Python 套件，同時提供音訊與影片生成模型的推理介面及 LoRA 微調訓練功能。LoRA 支援讓開發者能以較低成本針對特定風格或內容進行模型客製化，降低二次開發門檻。在生成式影音 AI 工具快速演進的當下，官方推出的訓練套件有助於社群更快速地落地應用。
-> _Official Python inference and LoRA trainer package for the LTX-2 audio–video generative model._
+> XLibre XServer 25.2.0 正式釋出，這是從 X.Org 分叉而來的 X Window System 伺服器實作。在 Wayland 逐漸普及的趨勢下，XLibre 選擇延續並積極改善 X11 架構，為仍依賴 X11 的應用程式與使用者提供長期支援。此次版本的發布在 Linux 桌面社群引發廣泛討論。
+> _XLibre Xserver_
 
-📍 出處 / via: GitHub Trending
+📍 出處 / via: Hacker News
 
-### 35. [stanford-oval/storm](https://github.com/stanford-oval/storm)
-⭐ 28,825 · 🔥 196/day · Python
+[HN](https://news.ycombinator.com/item?id=48605778)
 
-> 史丹佛大學開放虛擬助理實驗室開發的 LLM 知識整理系統，能針對指定主題自動進行研究，並生成附有引用來源的完整長篇報告。有別於單純問答，它模擬了較接近學術研究的資訊彙整流程，適合需要深度掌握陌生領域的使用者。研究人員、分析師或需要快速建立主題知識框架的人，都能從中獲得有效輔助。
-> _An LLM-powered knowledge curation system that researches a topic and generates a full-length report with citations._
+### 21. [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)
+⭐ 40,501 · 🆕 new · JavaScript
 
-📍 出處 / via: GitHub Trending
+> Ponytail 讓 AI 代理人效仿「房間裡最懶的資深工程師」——優先尋找可重用的既有程式碼，避免不必要的重新撰寫。其核心信念是「最好的程式碼是從未寫出的程式碼」，透過這種策略引導代理人在生成前先評估真正的必要性。在 AI 輔助開發日益普及的今天，這種反過度生成的思路在開發者社群中引起了共鳴。
+> _Makes your AI agent think like the laziest senior dev in the room. The best code is the code you never wrote._
 
-### 36. [koala73/worldmonitor](https://github.com/koala73/worldmonitor)
-⭐ 57,348 · 🔥 156/day · 💬 HN 6 · TypeScript
+📍 出處 / via: GitHub new-repo search
 
-> 一個 AI 驅動的即時全球情報儀表板，整合新聞聚合、地緣政治監測與基礎設施追蹤，提供統一的態勢感知介面。目標是讓使用者不必在各資訊平台間切換，即可即時掌握全球動態與潛在風險訊號。適合需要持續監控全球局勢的分析師、研究人員或對國際情勢高度關注的決策者。
-> _Real-time global intelligence dashboard. AI-powered news aggregation, geopolitical monitoring, and infrastructure tracking in a unified situational awareness interface_
+### 22. [XiaomiMiMo/MiMo-Code](https://github.com/XiaomiMiMo/MiMo-Code)
+⭐ 9,977 · 🆕 new · TypeScript
 
-📍 出處 / via: GitHub Trending · Hacker News
+> MiMo Code 是小米推出的框架，主張讓模型與代理人在程式碼任務中相互協同演化、持續強化彼此的能力。它針對程式碼生成與執行場景設計，探索模型訓練與代理人行為之間的雙向回饋機制。此開源專案來自小米 AI 研究部門，協同演化的設計思路近期受到社群的廣泛關注。
+> _MiMo Code: Where Models and Agents Co-Evolve_
 
-[HN](https://news.ycombinator.com/item?id=48599274)
+📍 出處 / via: GitHub new-repo search
 
-### 37. [openai/codex](https://github.com/openai/codex)
-⭐ 92,211 · 🔥 180/day · Rust
+### 23. [shadcn/improve](https://github.com/shadcn/improve)
+⭐ 5,680 · 🆕 new
 
-> OpenAI 推出的輕量級終端機程式代理人，讓開發者無須離開命令列即可與 AI 協作完成程式碼任務。相較於需要切換至 IDE 外掛的方式，codex 直接嵌入工程師最熟悉的工作環境，減少上下文切換的摩擦。對習慣 CLI 操作的開發者而言，這是目前整合最自然的 AI 輔助編程選項之一。
-> _Lightweight coding agent that runs in your terminal_
+> shadcn 的 improve 工具採用分層模型策略：由高能力模型稽核程式碼庫並制定改善計畫，再將計畫交由較低成本的模型執行。這種分工方式在維持審查品質的同時有效控制 AI 使用費用，適合希望系統性提升程式碼品質但預算有限的團隊。務實的工作流程設計讓它在開發者社群中引發關注。
+> _Use your most capable model to audit your codebase and write plans for cheaper models to execute._
 
-📍 出處 / via: GitHub Trending
+📍 出處 / via: GitHub new-repo search
 
-### 38. [calesthio/OpenMontage](https://github.com/calesthio/OpenMontage)
-⭐ 6,370 · 🔥 156/day · Python
+### 24. [zzet/gortex](https://github.com/zzet/gortex)
+⭐ 659 · 🔥 83/day · Go
 
-> OpenMontage 自稱是全球首個開源的代理人驅動影片製作系統，提供 12 條生產管線、52 項工具與超過 500 個代理人技能，目標是將 AI 程式輔助工具轉化為完整的影片製作工作室。過去影片製作需要在多個軟體間手動協調剪輯、配音與後製，這套系統試圖讓代理人接管整個流程。以開源形式釋出，吸引對 AI 影音自動化製作有興趣的開發者社群探索其應用可能。
-> _World's first open-source, agentic video production system. 12 pipelines, 52 tools, 500+ agent skills. Turn your AI coding assistant into a full video production studio._
-
-📍 出處 / via: GitHub Trending
-
-### 39. [stablyai/orca](https://github.com/stablyai/orca)
-⭐ 5,542 · 🔥 151/day · TypeScript
-
-> Orca 是一款專為平行代理人群集設計的開發環境，讓使用者能以自己的 API 訂閱帳號同時驅動多個程式代理人並行運作。面對需要拆分成多個子任務的大型開發工作，單一代理人往往效率受限，Orca 試圖以群集架構突破這個瓶頸。目前已提供桌面與行動裝置版本，方便工程師在不同場景下管理代理人工作流程。
-> _Orca is the ADE for working with a fleet of parallel agents. Run any coding agent with your own subscription. Available on desktop and mobile._
+> Gortex 是高效能的程式碼智慧引擎，支援 257 種程式語言與多個程式碼倉庫，可透過 CLI、MCP Server 及 API 存取，且完全在本地端運行。它專為 AI 編程代理人設計，只向代理人暴露必要的程式碼脈絡，宣稱可將 token 用量降低最多 50 倍。對注重資料隱私、希望在本地端實現高效 AI 輔助開發的團隊而言，這是一個值得關注的選項。
+> _High-performance code-intelligence engine for AI agents and IDE, supports 257 languages, multi repositories, with access via CLI, MCP Server, and API. AI coding agents teammate - expose only needed information, cutting token usage up to 50x. 100% local._
 
 📍 出處 / via: GitHub Trending
 
-### 40. [cjpais/Handy](https://github.com/cjpais/Handy)
-⭐ 24,269 · 🔥 140/day · Rust
+### 25. [angular/angular](https://github.com/angular/angular)
+⭐ 100,392 · 🔥 39/day · TypeScript
 
-> Handy 是一款完全離線運作的免費開源語音轉文字應用程式，不依賴任何雲端服務即可進行語音辨識。對於重視隱私、不希望語音資料傳送至遠端伺服器的使用者，這提供了一個完全自主掌控的替代方案。應用本身設計為可擴充架構，開發者能依需求替換或添加底層辨識模型。
-> _A free, open source, and extensible speech-to-text application that works completely offline._
-
-📍 出處 / via: GitHub Trending
-
-### 41. [santinic/audiblez](https://github.com/santinic/audiblez)
-⭐ 7,785 · 🔥 139/day · Python
-
-> audiblez 能將電子書自動轉換為有聲書，讓使用者把手邊的 epub 或其他格式的電子書直接生成可收聽的音訊檔案。對於通勤中或無暇閱讀文字的讀者，這提供了一個低成本的替代途徑，無需另外購買商業有聲書版本。整個轉換流程在本地端執行，使用方式相對直接。
-> _Generate audiobooks from e-books_
+> Angular 是 Google 主導的企業級前端框架，為需要長期維護的大型 Web 應用提供完整工具鏈、型別安全與模組化架構。它的設計理念是讓團隊在複雜的業務需求下仍能保持高信心地交付產品，從路由、表單到 HTTP 客戶端一應俱全。持續演進的版本策略與穩健的升級路徑，使其在企業開發圈長期受到重視。
+> _Deliver web apps with confidence 🚀_
 
 📍 出處 / via: GitHub Trending
 
-### 42. [virattt/ai-hedge-fund](https://github.com/virattt/ai-hedge-fund)
-⭐ 60,269 · 𝕏 @axichuhai · Python
+### 26. [sveltejs/svelte](https://github.com/sveltejs/svelte)
+⭐ 87,319 · 🔥 39/day · JavaScript
 
-> ai-hedge-fund 將巴菲特、查理·芒格、葛拉漢等 15 位投資大師的思維模型各自封裝成 AI 代理人，組成一支模擬對沖基金團隊，目前在 GitHub 上已累積超過 6 萬顆星。使用者輸入股票代碼後，系統會自動依序完成技術面、基本面與市場情緒分析，計算風險指標與部位限制，最終輸出買入、做空或持有的建議。這種將投資哲學具象化為可協作 AI 代理人的設計，在金融圈與技術社群引發廣泛討論。
-> _An AI Hedge Fund Team_
-
-> 💬 @axichuhai：「金融圈这个开源项目 ai-hedge-fund 最近刷屏了，在GitHub 已经狂揽 6 万+ star > 它把巴菲特、查理·芒格、格雷厄姆等 15 位投资大师的思维模型做成了 AI 智能体，组成一支模拟对冲基金团队 > 你输入一个股票代码，它会自动跑完一整套流程 > 技术面、基本面、市场情绪挨个分析，接着算风险指…」
-
-📍 出處 / via: Firecrawl → X @axichuhai
-
-[X post](https://x.com/axichuhai/status/2066710290750717997)
-
-### 43. [garrytan/gstack](https://github.com/garrytan/gstack)
-⭐ 111,515 · 𝕏 @axichuhai · TypeScript
-
-> YC 執行長 Garry Tan 將自己的 Claude Code 工作流程開源為 gstack，不到兩個月便累積超過 10 萬顆星。這套方案包含 23 個專用指令，分別扮演 CEO、工程師、設計師、QA 與發布經理等角色，讓單人開發者能驅動一支虛擬開發團隊協作。Garry 本人透過這套方法，在 60 天內交付 3 個生產服務與逾 40 項功能，引發大量工程師效仿與討論。
-> _Use Garry Tan's exact Claude Code setup: 23 opinionated tools that serve as CEO, Designer, Eng Manager, Release Manager, Doc Engineer, and QA_
-
-> 💬 @axichuhai：「这套Claude Code开源工作流太顶了 > YC CEO Gary Tan的项目，叫 gstack，两个月不到就超过 10 w star。 > 他自己用这套方法，60 天产出 3 个生产服务、40+ 功能，平均每天写约 1 万行逻辑代码。 > 他是把 Claude Code 变成一支虚拟团队： 23 个指令，每个…」
-
-📍 出處 / via: Firecrawl → X @axichuhai
-
-[X post](https://x.com/axichuhai/status/2066874995771355319)
-
-### 44. [VectifyAI/OpenKB](https://github.com/VectifyAI/OpenKB)
-⭐ 2,416 · 🔥 148/day · Python
-
-> OpenKB 是以大型語言模型為核心的開源知識庫系統，讓組織或個人能建立完全自主掌控的 LLM 知識管理平台。相較於依賴第三方 SaaS 服務，自行架設知識庫能更靈活地控制資料隱私與模型選擇。對需要整合內部文件、技術文檔或常見問答的企業團隊而言，這是一個值得考量的開源選項。
-> _OpenKB: Open LLM Knowledge Base_
+> Svelte 採用編譯時期轉換的策略，將元件直接編譯為原生 JavaScript，執行時不需要額外的框架運行時負擔。語法直覺簡潔，特別適合不想被繁重工具鏈與虛擬 DOM 概念束縛的開發者。它讓 Web 開發回歸輕量本質，是 React 與 Vue 生態之外一個日益受矚目的替代選擇。
+> _web development for the rest of us_
 
 📍 出處 / via: GitHub Trending
 
-### 45. [bytedance/UI-TARS-desktop](https://github.com/bytedance/UI-TARS-desktop)
-⭐ 36,959 · 🔥 113/day · TypeScript
+### 27. [temporalio/temporal](https://github.com/temporalio/temporal)
+⭐ 21,095 · 🔥 32/day · Go
 
-> 字節跳動推出的 UI-TARS 桌面版是一個開源多模態 AI 代理人堆疊，旨在串接前沿 AI 模型與代理人基礎設施，讓開發者能構建可理解使用者介面並直接操作 UI 元素的代理人。這類具備視覺理解能力的代理人，在自動化測試、桌面任務自動化等場景具備相當的應用潛力。以開源形式釋出有助於社群在此基礎上進行深度客製化整合。
-> _The Open-Source Multimodal AI Agent Stack: Connecting Cutting-Edge AI Models and Agent Infra_
-
-📍 出處 / via: GitHub Trending
-
-### 46. [BuilderIO/agent-native](https://github.com/BuilderIO/agent-native)
-⭐ 1,092 · 🔥 147/day · TypeScript
-
-> agent-native 是 Builder.io 推出的框架，專為以 AI 代理人為核心設計的應用程式而建，有別於在傳統應用上附加 AI 功能的做法。隨著越來越多產品開始以代理人互動取代傳統圖形介面，開發者需要新的架構模式來支撐這類應用的設計與構建。這個框架試圖提供一套標準化基礎，讓代理人原生應用的開發有更清晰的方向。
-> _A framework for building agent-native applications._
+> Temporal 是一個工作流程編排服務，專門解決分散式系統中長時間執行任務的可靠性問題。當業務邏輯需要跨服務、跨網路甚至跨數天持續運作時，Temporal 能自動處理重試、狀態持久化與錯誤恢復，讓開發者只需專注在業務邏輯本身。它正逐漸成為後端工程師面對複雜非同步流程時的首選基礎設施。
+> _Temporal service_
 
 📍 出處 / via: GitHub Trending
 
-### 47. [godotengine/godot](https://github.com/godotengine/godot)
-⭐ 112,798 · 🔥 96/day · C++
+### 28. [omnigent-ai/omnigent](https://github.com/omnigent-ai/omnigent)
+⭐ 4,080 · 🆕 new · Python
 
-> Godot 是一款成熟的開源跨平台遊戲引擎，完整支援 2D 與 3D 遊戲開發，採用完全免費且無版稅的授權模式。獨立開發者與小型工作室無需承擔任何授權費用，即可使用引擎的全部功能並保留所有收益。活躍的開源社群持續貢獻功能更新，使其成為目前最受開發者關注的開源遊戲引擎選項之一。
-> _Godot Engine – Multi-platform 2D and 3D game engine_
+> Omnigent 是一個開源的 AI 代理框架，能同時協調 Claude Code、Codex、Cursor 等多種編碼代理，讓開發者無需改寫程式碼即可自由切換底層代理。它內建政策管控與沙箱機制，並支援跨裝置的即時協作，解決多種 AI 編碼工具各自孤立、難以統一管理的痛點。對於需要在不同代理之間靈活調度的團隊，這套框架提供了一個統一的調度層。
+> _Omnigent is an open-source AI agent framework and meta-harness: orchestrate Claude Code, Codex, Cursor, Pi, and custom agents — swap harnesses without rewriting, enforce policies and sandboxing, and collaborate in real time from any device._
 
-📍 出處 / via: GitHub Trending
+📍 出處 / via: GitHub new-repo search
 
-### 48. [jdx/mise](https://github.com/jdx/mise)
-⭐ 29,776 · 🔥 89/day · Rust
+### 29. [charmbracelet/crush](https://github.com/charmbracelet/crush)
+⭐ 25,517 · 🔥 30/day · Go
 
-> mise 是一套將開發工具版本管理、環境變數設定與任務執行器整合於單一工具的命令列解決方案，能取代 nvm、rbenv、direnv 等多個傳統工具的組合。不同專案常需要不同版本的 Node.js、Python 或 Ruby，mise 能根據目錄自動切換環境，大幅降低版本衝突的管理成本。對需要同時維護多個技術棧專案的工程師，這是值得納入日常工作流的效率工具。
-> _dev tools, env vars, task runner_
-
-📍 出處 / via: GitHub Trending
-
-### 49. [K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills)
-⭐ 28,781 · 🔥 88/day · Python
-
-> 這是一套專為科學研究設計的 AI Agent 技能庫，提供 140 個即用技能，並串接超過 100 個涵蓋生物、化學、醫學及新藥探索的專業資料庫。研究人員可將其整合進 Cursor、Claude Code 等主流 AI 工具，讓一般 Agent 直接具備科學領域所需的查詢與分析能力。目前全球已有逾 16 萬名科學家採用，並成為 Agent Skills 開放標準的主要參考實作之一。
-> _Turn any AI agent into an AI Scientist. The #1 Agent Skills library for science, used by 160,000+ scientists worldwide. 140 ready-to-use skills plus 100+ scientific databases covering biology, chemistry, medicine, and drug discovery. Compatible with Cursor, Claude Code, Codex, Pi, Antigravity, and the open Agent Skills standard._
+> Crush 是 Charmbracelet 推出的終端機 AI 編碼工具，延續該團隊一貫對命令列介面美學的重視，將代理式 AI 程式設計輔助帶入終端環境。開發者無需離開慣用的工作流程，即可在命令列中享有 AI 協作編程的體驗。對於偏好終端操作的工程師而言，這是一個兼顧操作習慣與 AI 能力的選項。
+> _Glamourous agentic coding for all 💘_
 
 📍 出處 / via: GitHub Trending
 
-### 50. [penpot/penpot](https://github.com/penpot/penpot)
-⭐ 50,639 · 🔥 85/day · Clojure
+### 30. [lima-vm/lima](https://github.com/lima-vm/lima)
+⭐ 21,295 · 🔥 24/day · Go
 
-> Penpot 是一款開源的設計與程式碼協作工具，讓設計師與工程師能在同一平台上共同作業，直接縮短設計稿與最終實作之間的落差。它以開放原始碼授權釋出，團隊可自行部署，不受封閉式商業平台的授權限制。對重視工具透明度與資料自主的開發團隊來說，這類開源方案正逐漸成為設計協作流程中值得採用的選項。
-> _Penpot: The open-source design tool for design and code collaboration_
+> Lima 讓 macOS 使用者能輕鬆啟動 Linux 虛擬機，主要聚焦於容器執行環境的需求，可作為 Docker Desktop 的輕量替代方案。它透過 QEMU 或 Apple 虛擬化框架後端提供接近原生的效能，設定與啟動流程相對簡便。對於需要在 Mac 上運行 Linux 工作負載或容器化開發環境的工程師，Lima 是一個低成本且靈活的選項。
+> _Linux virtual machines, with a focus on running containers_
+
+📍 出處 / via: GitHub Trending
+
+### 31. [livekit/livekit](https://github.com/livekit/livekit)
+⭐ 19,323 · 🔥 22/day · Go
+
+> LiveKit 提供端對端的即時通訊堆疊，支援人與人、人與 AI 之間的低延遲音訊、視訊及資料串流。隨著語音 AI 代理的應用場景快速擴展，LiveKit 已成為建構即時 AI 語音與多媒體應用的熱門基礎設施。開源的特性讓開發者能自行部署，不受雲端服務商綁定，也因此在 AI 應用開發社群中持續累積熱度。
+> _End-to-end realtime stack for connecting humans and AI_
+
+📍 出處 / via: GitHub Trending
+
+### 32. [zarazhangrui/follow-builders](https://github.com/zarazhangrui/follow-builders)
+⭐ 5,315 · 🔥 22/day · JavaScript
+
+> Follow Builders 自動追蹤 X 平台和 YouTube Podcast 上的頂尖 AI 開發者，並將其內容重新整理成易於消化的摘要。核心理念是「追蹤建構者，而非網紅」，協助使用者過濾資訊雜訊，聚焦在真正動手開發 AI 工具的人身上。對於想掌握 AI 工具開發第一線動態、卻沒有時間廣泛追蹤的工程師來說，是一個高訊噪比的資訊來源。
+> _AI builders digest — monitors top AI builders on X and YouTube podcasts, remixes their content into digestible summaries. Follow builders, not influencers._
+
+📍 出處 / via: GitHub Trending
+
+### 33. [TryGhost/Ghost](https://github.com/TryGhost/Ghost)
+⭐ 54,041 · 🔥 21/day · JavaScript
+
+> Ghost 是專為現代出版而生的開源平台，原生支援訂閱制、付費會員與電子報等內容營利模式。相比 WordPress，Ghost 在架構上更為精簡，特別適合獨立創作者或媒體品牌希望自行掌控讀者關係與收入來源的場景。以 Node.js 為基礎的技術堆疊讓它可以自架部署，也有官方雲端服務可供選擇。
+> _Independent technology for modern publishing, memberships, subscriptions and newsletters._
+
+📍 出處 / via: GitHub Trending
+
+### 34. [fishjar/kiss-translator](https://github.com/fishjar/kiss-translator)
+⭐ 10,846 · 🔥 21/day · JavaScript
+
+> Kiss Translator 是一款開源的雙語對照翻譯工具，同時以瀏覽器擴充功能與油猴腳本兩種形式提供，方便在閱讀外文網頁時同步顯示原文與譯文。介面設計簡約，支援多種翻譯引擎，適合需要沉浸式雙語閱讀體驗的使用者，無論是技術文件閱讀還是語言學習都能派上用場。輕量開源的特性讓它在追求簡單好用的開發者社群中穩定受到關注。
+> _A simple, open source bilingual translation extension & Greasemonkey script (一个简约、开源的 双语对照翻译扩展 & 油猴脚本)_
+
+📍 出處 / via: GitHub Trending
+
+### 35. [OSU-NLP-Group/HippoRAG](https://github.com/OSU-NLP-Group/HippoRAG)
+⭐ 3,752 · 🔥 33/day · Python
+
+> HippoRAG 是俄亥俄州立大學 NLP 研究團隊發表於 NeurIPS 2024 的新型 RAG 框架，靈感源自人類大腦海馬迴的長期記憶機制。它結合知識圖譜與個人化 PageRank 演算法，讓大型語言模型能跨文件持續累積並整合知識，而非每次查詢都從頭檢索。在需要跨文件推理的複雜問答場景中，HippoRAG 相比傳統向量搜尋 RAG 展現出更強的知識整合能力。
+> _[NeurIPS'24] HippoRAG is a novel RAG framework inspired by human long-term memory that enables LLMs to continuously integrate knowledge across external documents. RAG + Knowledge Graphs + Personalized PageRank._
+
+📍 出處 / via: GitHub Trending
+
+### 36. [go-gitea/gitea](https://github.com/go-gitea/gitea)
+⭐ 56,401 · 🔥 18/day · Go
+
+> Gitea 是一個輕量、易於自架的 Git 託管服務，將程式碼審查、團隊協作、套件登錄與 CI/CD 等功能整合於單一平台。對於不想將程式碼依賴第三方平台的團隊，Gitea 以 Go 語言撰寫、單一執行檔即可部署的特性大幅降低了運維門檻。低資源需求與高自主性，使其成為 GitHub 與 GitLab 之外自架 Git 服務的熱門選擇。
+> _Git with a cup of tea! Painless self-hosted all-in-one software development service, including Git hosting, code review, team collaboration, package registry and CI/CD_
+
+📍 出處 / via: GitHub Trending
+
+### 37. [ocornut/imgui](https://github.com/ocornut/imgui)
+⭐ 73,947 · 🔥 18/day · C++
+
+> Dear ImGui 是專為 C++ 打造的即時模式輕量 GUI 函式庫，幾乎不依賴外部套件，特別適合遊戲引擎、工具程式和嵌入式系統的 UI 開發。開發者可以用少量代碼在渲染視窗中快速疊出偵錯介面或設定面板，無需複雜的布局系統。因其輕盈靈活的特性，長年在遊戲開發社群中穩居熱門工具之列。
+> _Dear ImGui: Bloat-free Graphical User interface for C++ with minimal dependencies_
+
+📍 出處 / via: GitHub Trending
+
+### 38. [dolthub/dolt](https://github.com/dolthub/dolt)
+⭐ 23,530 · 🔥 17/day · Go
+
+> Dolt 把 Git 的版本控制概念搬進了 SQL 資料庫，讓你可以對資料做 commit、branch、merge 和 diff，就像管理程式碼一樣管理資料集。這對需要追蹤資料變更歷程、多人協作修改同一份資料，或需要快速回滾到某個歷史版本的團隊來說極為實用。它相容標準 MySQL 語法，既有的工具鏈幾乎不需要改動。
+> _Dolt – Git for Data_
+
+📍 出處 / via: GitHub Trending
+
+### 39. [ast-grep/ast-grep](https://github.com/ast-grep/ast-grep)
+⭐ 14,649 · 🔥 14/day · Rust
+
+> ast-grep 是一款以 Rust 撰寫的命令列工具，能依據程式碼的抽象語法樹結構進行搜尋、Lint 和批量重寫，而不只是單純的文字比對。當你需要跨整個專案找出某種特定的程式碼模式，或是自動化大規模重構時，它比正規表達式更精準、也更不容易誤判。支援多種語言且效能極高，正逐漸成為大型代碼庫維護的利器。
+> _⚡A CLI tool for code structural search, lint and rewriting. Written in Rust_
+
+📍 出處 / via: GitHub Trending
+
+### 40. [cilium/cilium](https://github.com/cilium/cilium)
+⭐ 24,554 · 🔥 13/day · Go
+
+> Cilium 利用 Linux 核心的 eBPF 技術，為 Kubernetes 叢集提供高效能的網路連線、安全政策和可觀測性，不需要修改應用程式代碼。相比傳統的 iptables 方案，eBPF 讓封包過濾和網路策略的執行直接在核心層完成，延遲更低、擴展性更強。隨著零信任架構和服務網格的普及，Cilium 已成為雲原生環境網路層的主流選擇之一。
+> _eBPF-based Networking, Security, and Observability_
+
+📍 出處 / via: GitHub Trending
+
+### 41. [electron/electron](https://github.com/electron/electron)
+⭐ 121,689 · 🔥 13/day · C++
+
+> Electron 讓開發者能夠用 JavaScript、HTML 和 CSS 打造跨平台桌面應用程式，底層整合了 Chromium 渲染引擎和 Node.js 執行環境。VS Code、Slack、Discord 等知名工具都是以此為基礎建立的，大幅降低了從 Web 轉型到桌面應用的門檻。對於想快速交付跨 Windows、macOS 和 Linux 版本的小團隊，Electron 仍是最成熟的選項之一。
+> _:electron: Build cross-platform desktop apps with JavaScript, HTML, and CSS_
+
+📍 出處 / via: GitHub Trending
+
+### 42. [OrcaSlicer/OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer)
+⭐ 14,709 · 🔥 13/day · C++
+
+> OrcaSlicer 是一款開源的 3D 列印切片軟體，能將 3D 模型轉換成 Bambu、Prusa、Voron 等各式印表機可讀取的 G-code 指令。它支援豐富的列印參數調整、多材料設定和進階校準功能，滿足從入門到專業玩家的需求。由於對 Bambu Lab 機型的支援尤為完善，在近年快速成長的消費級 3D 列印社群中相當受歡迎。
+> _G-code generator for 3D printers (Bambu, Prusa, Voron, VzBot, RatRig, Creality, etc.)_
+
+📍 出處 / via: GitHub Trending
+
+### 43. [jamesyc/TimeCapsuleSMB](https://github.com/jamesyc/TimeCapsuleSMB)
+⭐ 615 · 🔥 56/day · Python
+
+> Apple 的 Time Capsule 早已停售，但仍有不少用戶手上留著這台結合 Wi-Fi 路由器與網路硬碟的裝置。這個專案研究如何破解 Time Capsule，讓它改跑現代版的 Samba 伺服器，使原本因軟體過時而幾乎廢棄的硬體重新具備完整的 SMB 檔案共享能力。對於不想丟棄老硬體又希望保有相容性的用戶，這是一個頗具吸引力的 DIY 解法。
+> _Hacking the Apple Time Capsule to run modern Samba_
+
+📍 出處 / via: GitHub Trending
+
+### 44. [weaviate/weaviate](https://github.com/weaviate/weaviate)
+⭐ 16,370 · 🔥 12/day · Go
+
+> Weaviate 是一款開源向量資料庫，能同時儲存物件本身和其向量表示，讓你可以把向量相似度搜尋和結構化條件過濾結合在一起查詢。這對於 RAG 應用、語意搜尋或推薦系統來說是非常實用的基礎設施。它以雲原生架構設計，具備高可用性和水平擴展能力，可以在生產環境中穩定運行。
+> _Weaviate is an open-source vector database that stores both objects and vectors, allowing for the combination of vector search with structured filtering with the fault tolerance and scalability of a cloud-native database​._
+
+📍 出處 / via: GitHub Trending
+
+### 45. [RPCS3/rpcs3](https://github.com/RPCS3/rpcs3)
+⭐ 18,975 · 🔥 12/day · C++
+
+> RPCS3 是一款開源的 PlayStation 3 模擬器，讓玩家可以在 PC 上遊玩 PS3 遊戲，同時也是研究 PS3 架構的重要工具。歷經多年開發，目前已有大量遊戲達到可玩狀態，部分甚至能以高於原生的解析度順暢執行。對於希望保存遊戲文化遺產或研究 Cell 處理器架構的人，這個專案具有相當的技術與歷史意義。
+> _PlayStation 3 emulator and debugger_
+
+📍 出處 / via: GitHub Trending
+
+### 46. [tamnd/kage](https://github.com/tamnd/kage)
+⭐ 2,110 · 🆕 new · Go
+
+> Kage 可以將任意網頁完整抓取下來供離線瀏覽，並在過程中自動剝除 JavaScript，只保留靜態的 HTML 與 CSS 內容。這對需要在無網路環境閱讀技術文件、或想保存某篇文章以防原網頁消失的開發者來說很有用。移除 JS 也意味著頁面載入更快，並消除了追蹤腳本和廣告帶來的干擾。
+> _Shadow any website for offline viewing, with the JavaScript stripped out_
+
+📍 出處 / via: GitHub new-repo search
+
+### 47. [oxc-project/oxc](https://github.com/oxc-project/oxc)
+⭐ 21,645 · 🔥 11/day · Rust
+
+> OXC 是一套以 Rust 撰寫的高效能 JavaScript 工具集，涵蓋解析器、Linter、格式化工具和轉譯器，目標是整合目前前端生態中多個各自分散的工具。憑藉 Rust 的性能優勢，OXC 的 Lint 速度遠超 ESLint，對大型前端專案的建構流程提速效果顯著。隨著前端工具鏈 Rust 化趨勢加速，OXC 正成為這個領域的重要競爭者。
+> _⚓ A collection of high-performance JavaScript tools._
+
+📍 出處 / via: GitHub Trending
+
+### 48. [BuilderIO/skills](https://github.com/BuilderIO/skills)
+⭐ 2,015 · 🆕 new · JavaScript
+
+> 這個倉庫收錄了一系列專為 AI 編程 Agent 設計的技能腳本，讓 Agent 能夠執行更複雜的開發工作流程，例如代碼審查、安全掃描或自動部署等。透過這些可組合的技能模組，開發者可以擴展 Agent 的能力邊界，而不需要從頭描述每項操作的細節。隨著 AI 輔助開發日趨普遍，這類技能庫的出現反映出社群對標準化 Agent 行為的需求正在增長。
+> _Skills for coding agents_
+
+📍 出處 / via: GitHub new-repo search
+
+### 49. [Michael-A-Kuykendall/shimmy](https://github.com/Michael-A-Kuykendall/shimmy)
+⭐ 5,510 · 🔥 9/day · Rust
+
+> shimmy 是一款以純 Rust 撰寫的 WebGPU 推論引擎，原生支援 GGUF 格式模型，並提供相容 OpenAI API 的介面，可在任意 GPU 上運行。它的核心賣點在於完全脫離 Python 環境與 llama.cpp 的依賴，只需一個執行檔即可部署本地語言模型推論服務。對於追求輕量化、零依賴本地 LLM 部署的開發者而言，這樣的單一二進位設計正切中痛點。
+> _⚡ Pure-Rust WebGPU inference engine — OpenAI-API compatible, GGUF native, runs on any GPU. No Python. No llama.cpp. Single binary._
+
+📍 出處 / via: GitHub Trending
+
+### 50. [podman-container-tools/podman](https://github.com/podman-container-tools/podman)
+⭐ 32,065 · 🔥 9/day · Go
+
+> Podman 是管理 OCI 容器與 Pod 的開源工具，無需常駐 Daemon 程序、支援無 root 權限執行容器，與 Docker CLI 指令高度相容。它以更精簡的架構與更嚴謹的安全隔離著稱，讓開發者在平滑切換的同時減少攻擊面。隨著企業對容器安全性要求持續提升，Podman 作為 Docker 的輕量替代方案近年來持續吸引社群目光。
+> _Podman: A tool for managing OCI containers and pods._
 
 📍 出處 / via: GitHub Trending
