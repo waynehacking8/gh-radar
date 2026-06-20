@@ -55,12 +55,18 @@ def main():
     repos = collect()
     seen = load_seen()
     top = select(repos, seen)
+    when = datetime.now().strftime("%Y-%m-%d")
     if not top:
+        # Heartbeat: still email so a quiet day is visibly "ran, nothing new"
+        # rather than indistinguishable from a broken/skipped run.
         print("  nothing new today.", file=sys.stderr)
+        send_email(f"GitHub Radar — {when}（今天沒有新工具）",
+                   f"# GitHub Radar — {when}\n\n"
+                   "_雷達今天掃過所有來源，沒有發現新的 repo——可能都看過了，或都未達門檻。"
+                   "系統運作正常，明天見。_\n")
         return
 
-    summarize_zh(top)                                  # best-effort zh one-liners
-    when = datetime.now().strftime("%Y-%m-%d")
+    summarize_zh(top)                                  # best-effort zh blurbs
     md = render_md(top, when)
 
     out_dir = os.environ.get("GH_RADAR_DIGEST_DIR") or os.environ.get("GH_RADAR_VAULT")

@@ -12,13 +12,21 @@ SOURCE_NAMES = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
 
 
 def summarize_zh(repos):
-    """Best-effort: add a Traditional-Chinese one-liner to each repo via claude.
-    Falls back to English-only (no zh) if claude is unavailable."""
-    items = [{"name": r.full_name, "en": r.desc} for r in repos]
+    """Best-effort: add a vivid Traditional-Chinese blurb to each repo via claude,
+    grounded in how a human framed it when sharing (X post / forum title) plus the
+    official GitHub description. Falls back to English-only if claude is unavailable."""
+    items = [{"name": r.full_name, "en": r.desc, "context": r.context} for r in repos]
     prompt = (
-        "Below is a JSON array of GitHub repos. For EACH repo write a concise "
-        "Traditional Chinese (繁體中文，台灣用語) description of what the tool DOES — "
-        "its function in practice, not marketing fluff. Keep each to 15–40 字. "
+        "You are writing a daily digest of trending GitHub tools for a developer. "
+        "Each item has the repo `name`, its official GitHub description `en`, and "
+        "`context` — the words a real person used when sharing it (an X post or a "
+        "forum title; may be empty). For EACH repo, write a Traditional Chinese "
+        "(繁體中文，台灣用語) blurb of 2–3 sentences (約 60–110 字) that sets the scene: "
+        "what the tool is, the concrete problem or scenario it fits, and why it is "
+        "drawing attention. When `context` is present, take your angle and tone from "
+        "it (echo the situation the sharer described). Ground every claim in "
+        "name/en/context — do NOT invent features, numbers, or benchmarks that aren't "
+        "supported. No marketing fluff, no emoji, no hashtags. "
         "Return ONLY a JSON object mapping each exact `name` to its Chinese string. "
         "No markdown fences, no commentary.\n\nRepos:\n" + json.dumps(items, ensure_ascii=False))
     mapping = claude_json(prompt, want="object")
@@ -29,7 +37,7 @@ def summarize_zh(repos):
     for r in repos:
         zh = mapping.get(r.full_name)
         if isinstance(zh, str) and zh.strip():
-            r.zh = " ".join(zh.split())[:120]
+            r.zh = " ".join(zh.split())[:400]          # richer blurb (was a one-liner)
             n += 1
     print(f"  ✓ Chinese summaries: {n}/{len(repos)}", file=sys.stderr)
 
@@ -109,6 +117,11 @@ def render_md(repos, when):
         elif r.desc:
             lines.append("")
             lines.append(f"> {r.desc}")
+        if r.context and "x" in r.sources:            # the sharer's own words — the scene
+            q = r.context if len(r.context) <= 160 else r.context[:159] + "…"
+            who = ("@" + r.x_by[0]) if r.x_by else "X"
+            lines.append("")
+            lines.append(f"> 💬 {who}：「{q}」")
         lines.append("")
         lines.append(f"📍 出處 / via: {provenance(r)}")
         refs = _refs(r)

@@ -115,9 +115,10 @@ def src_hacker_news():
     for h in data.get("hits", []):
         points = h.get("points") or 0
         hn_url = f"https://news.ycombinator.com/item?id={h.get('objectID')}"
+        title = (h.get("title") or "").strip()
         for full in repos_in(h.get("url") or ""):
             if full not in out or points > out[full]["hn_points"]:
-                out[full] = {"hn_points": points, "hn_url": hn_url}
+                out[full] = {"hn_points": points, "hn_url": hn_url, "context": title}
     return out
 
 
@@ -186,10 +187,12 @@ def src_reddit():
             p = child.get("data", {})
             pts = p.get("ups") or p.get("score") or 0
             permalink = "https://reddit.com" + p.get("permalink", "")
-            blob = f"{p.get('url','')} {p.get('selftext','')} {p.get('title','')}"
+            title = (p.get("title") or "").strip()
+            blob = f"{p.get('url','')} {p.get('selftext','')} {title}"
             for full in repos_in(blob):
                 if full not in out or pts > out[full]["reddit_points"]:
-                    out[full] = {"reddit_points": pts, "reddit_url": permalink, "reddit_sub": sub}
+                    out[full] = {"reddit_points": pts, "reddit_url": permalink,
+                                 "reddit_sub": sub, "context": title}
     return out
 
 
@@ -253,7 +256,7 @@ def _x_identify(prose, add):
         info = _resolve_repo(query, p["claim_stars"])
         if not info or info.get("archived") or info.get("fork"):
             continue
-        add(info["full_name"], p["user"], p["url"], p["likes"], info=info)
+        add(info["full_name"], p["user"], p["url"], p["likes"], info=info, context=p["text"])
         found += 1
     print(f"  ✓ X: {found} repo(s) resolved from prose tweets", file=sys.stderr)
 
@@ -269,13 +272,15 @@ def src_x():
     max_llm = int(os.environ.get("GH_RADAR_X_MAX_LLM", "30"))
     out, prose = {}, []
 
-    def add(full, user, url, likes, info=None):
+    def add(full, user, url, likes, info=None, context=""):
         e = out.setdefault(full, {"x_mentions": 0, "x_by": [], "x_url": url, "x_likes": 0})
         e["x_mentions"] += 1
         if user not in e["x_by"]:
             e["x_by"].append(user)
-        if likes >= e["x_likes"]:
+        if likes >= e["x_likes"]:                 # keep the most-liked post's text + link
             e["x_likes"], e["x_url"] = likes, (url or e["x_url"])
+            if context:
+                e["context"] = " ".join(context.split())[:280]
         if info:                              # pre-enrich from the resolve fetch (saves an API call)
             e["stars"] = info.get("stargazers_count", e.get("stars", 0))
             e["desc"] = (info.get("description") or e.get("desc", "")).strip()
@@ -290,7 +295,7 @@ def src_x():
             links = list(repos_in(text))
             if links:
                 for full in links:
-                    add(full, user, url, likes)
+                    add(full, user, url, likes, context=text)
             elif X_TOOL_RE.search(text):
                 prose.append({"user": user, "url": url, "likes": likes,
                               "text": text[:300], "claim_stars": parse_star_count(text)})
