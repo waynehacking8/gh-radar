@@ -64,7 +64,7 @@ def parse_star_count(text):
 TREND_LANGS = config.split_env("GH_RADAR_TREND_LANGS", "python,rust,go,typescript,c++,javascript")
 
 
-def _parse_trending(html, out):
+def _parse_trending(html, out, daily):
     for block in html.split('<article class="Box-row">')[1:]:
         m = re.search(r'href="/([^"/]+)/([^"/]+)/stargazers"', block)
         if not m:
@@ -76,8 +76,14 @@ def _parse_trending(html, out):
             desc = unescape(re.sub(r"<[^>]+>", "", dm.group(1))).strip()
         sm = re.search(r'/stargazers"[^>]*>\s*([\d,]+)', block)
         stars = int(sm.group(1).replace(",", "")) if sm else 0
-        tm = re.search(r"([\d,]+)\s+stars (?:today|this week|this month)", block)
-        velocity = int(tm.group(1).replace(",", "")) if tm else 0
+        # Only the daily page's "stars today" is a real per-day velocity; the weekly
+        # page reports "stars this week", which must NOT be stored as stars_today
+        # (it would render as a wildly inflated "N/day"). Weekly pages still surface
+        # the repo + its total star count for discovery.
+        velocity = 0
+        if daily:
+            tm = re.search(r"([\d,]+)\s+stars today", block)
+            velocity = int(tm.group(1).replace(",", "")) if tm else 0
         prev = out.get(full, {})
         out[full] = {
             "stars_today": max(velocity, prev.get("stars_today", 0)),
@@ -94,7 +100,7 @@ def src_github_trending():
     pages += [f"https://github.com/trending/{lang}?since=daily" for lang in TREND_LANGS]
     for url in pages:
         try:
-            _parse_trending(http_get(url), out)
+            _parse_trending(http_get(url), out, daily="since=daily" in url)
         except Exception as e:  # noqa: BLE001
             print(f"  ! trending fetch failed ({url}): {e}", file=sys.stderr)
     return out
