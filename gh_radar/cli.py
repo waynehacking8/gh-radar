@@ -16,20 +16,24 @@ from .state import load_seen, save_seen
 
 
 def collect():
-    """Run every source (isolated) and merge contributions into Repo objects."""
+    """Run every source (isolated) and merge contributions into Repo objects.
+    Returns (repos, errors) — errors is how many sources raised, so the caller can
+    tell a genuinely quiet day from a total outage."""
     repos = {}
+    errors = 0
     for label, fn in SOURCES:
         try:
             result = fn() or {}
         except Exception as e:  # noqa: BLE001 — one bad source must not sink the rest
             print(f"  ! source {label} crashed: {e}", file=sys.stderr)
             result = {}
+            errors += 1
         print(f"  {label}: {len(result)} repos", file=sys.stderr)
         for full, attrs in result.items():
             r = repos.get(full) or repos.setdefault(full, Repo(full_name=full))
             r.sources.append(label)
             r.merge(attrs)
-    return repos
+    return repos, errors
 
 
 def select(repos, seen):
@@ -52,13 +56,21 @@ def select(repos, seen):
 
 def main():
     print("gh-radar: collecting…", file=sys.stderr)
-    repos = collect()
+    repos, errors = collect()
     seen = load_seen()
     top = select(repos, seen)
     when = datetime.now().strftime("%Y-%m-%d")
     if not top:
-        # Heartbeat: still email so a quiet day is visibly "ran, nothing new"
-        # rather than indistinguishable from a broken/skipped run.
+        # No NEW repos. Two very different reasons look identical here, so split them:
+        if not repos:
+            # Nothing collected from ANY source — an outage, not a quiet day. Fail
+            # loudly (red job -> real failure alert) rather than reassure with a
+            # false heartbeat.
+            raise RuntimeError(
+                f"no repos collected from any source ({errors}/{len(SOURCES)} "
+                f"crashed) — aborting instead of sending a false 'nothing new'")
+        # Genuinely nothing new (all already seen / below threshold). Heartbeat so a
+        # quiet day is visibly "ran, nothing new" and not mistaken for a broken run.
         print("  nothing new today.", file=sys.stderr)
         send_email(f"GitHub Radar — {when}（今天沒有新工具）",
                    f"# GitHub Radar — {when}\n\n"
