@@ -21,6 +21,10 @@ X_PROSE_MAX = int(os.environ.get("GH_RADAR_X_PROSE_MAX", "300"))      # tweet te
 X_CONTEXT_MAX = int(os.environ.get("GH_RADAR_X_CONTEXT_MAX", "280"))  # post text retained as scene
 QUOTE_MAX = int(os.environ.get("GH_RADAR_QUOTE_MAX", "160"))          # verbatim quote in the email
 ZH_MAX = int(os.environ.get("GH_RADAR_ZH_MAX", "400"))               # generated zh blurb
+# zh summaries are generated in small batches so one slow/failed LLM call can't
+# time out and drop *every* summary (the richer 2-3 sentence blurbs made a single
+# all-repos call exceed claude's timeout).
+SUMMARY_BATCH = int(os.environ.get("GH_RADAR_SUMMARY_BATCH", "12"))
 
 # Scoring weights — hoisted here so ranking is tunable without touching logic.
 W = {

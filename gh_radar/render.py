@@ -12,35 +12,43 @@ SOURCE_NAMES = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
                 "lobsters": "Lobsters", "reddit": "Reddit", "x": "X", "web": "web articles"}
 
 
+_ZH_PROMPT = (
+    "You are writing a daily digest of trending GitHub tools for a developer. "
+    "Each item has the repo `name`, its official GitHub description `en`, and "
+    "`context` — the words a real person used when sharing it (an X post or a "
+    "forum title; may be empty). For EACH repo, write a Traditional Chinese "
+    "(繁體中文，台灣用語) blurb of 2–3 sentences (約 60–110 字) that sets the scene: "
+    "what the tool is, the concrete problem or scenario it fits, and why it is "
+    "drawing attention. When `context` is present, take your angle and tone from "
+    "it (echo the situation the sharer described). Ground every claim in "
+    "name/en/context — do NOT invent features, numbers, or benchmarks that aren't "
+    "supported. No marketing fluff, no emoji, no hashtags. "
+    "Return ONLY a JSON object mapping each exact `name` to its Chinese string. "
+    "No markdown fences, no commentary.\n\nRepos:\n")
+
+
 def summarize_zh(repos):
     """Best-effort: add a vivid Traditional-Chinese blurb to each repo via claude,
     grounded in how a human framed it when sharing (X post / forum title) plus the
-    official GitHub description. Falls back to English-only if claude is unavailable."""
-    items = [{"name": r.full_name, "en": r.desc, "context": r.context} for r in repos]
-    prompt = (
-        "You are writing a daily digest of trending GitHub tools for a developer. "
-        "Each item has the repo `name`, its official GitHub description `en`, and "
-        "`context` — the words a real person used when sharing it (an X post or a "
-        "forum title; may be empty). For EACH repo, write a Traditional Chinese "
-        "(繁體中文，台灣用語) blurb of 2–3 sentences (約 60–110 字) that sets the scene: "
-        "what the tool is, the concrete problem or scenario it fits, and why it is "
-        "drawing attention. When `context` is present, take your angle and tone from "
-        "it (echo the situation the sharer described). Ground every claim in "
-        "name/en/context — do NOT invent features, numbers, or benchmarks that aren't "
-        "supported. No marketing fluff, no emoji, no hashtags. "
-        "Return ONLY a JSON object mapping each exact `name` to its Chinese string. "
-        "No markdown fences, no commentary.\n\nRepos:\n" + json.dumps(items, ensure_ascii=False))
-    mapping = claude_json(prompt, want="object")
-    if not isinstance(mapping, dict):
-        print("  i Chinese summaries unavailable — using English only", file=sys.stderr)
-        return
+    official GitHub description. Done in small batches so one slow/failed call can't
+    time out and drop every summary; each failed batch just falls back to English."""
     n = 0
-    for r in repos:
-        zh = mapping.get(r.full_name)
-        if isinstance(zh, str) and zh.strip():
-            r.zh = " ".join(zh.split())[:config.ZH_MAX]   # richer blurb (was a one-liner)
-            n += 1
-    print(f"  ✓ Chinese summaries: {n}/{len(repos)}", file=sys.stderr)
+    batch = max(1, config.SUMMARY_BATCH)
+    for start in range(0, len(repos), batch):
+        chunk = repos[start:start + batch]
+        items = [{"name": r.full_name, "en": r.desc, "context": r.context} for r in chunk]
+        mapping = claude_json(_ZH_PROMPT + json.dumps(items, ensure_ascii=False), want="object")
+        if not isinstance(mapping, dict):
+            continue                                      # this batch -> English; others still try
+        for r in chunk:
+            zh = mapping.get(r.full_name)
+            if isinstance(zh, str) and zh.strip():
+                r.zh = " ".join(zh.split())[:config.ZH_MAX]
+                n += 1
+    if n:
+        print(f"  ✓ Chinese summaries: {n}/{len(repos)}", file=sys.stderr)
+    else:
+        print("  i Chinese summaries unavailable — using English only", file=sys.stderr)
 
 
 def provenance(r):
