@@ -24,7 +24,17 @@ def score(r):
 
 
 def is_evergreen_noise(r):
-    """A repo that ONLY surfaced in a 'best tools' web article and is already very
-    popular is evergreen, not news — the article just re-listed a famous project.
-    (Trending/HN/X imply current activity, so they're never treated as noise.)"""
-    return set(r.sources) == {"web"} and r.stars >= config.EVERGREEN_STARS and not r.new_repo
+    """Filter famous, already-huge projects that aren't actually news today. A repo
+    only re-listed in a 'best tools' web article is noise; so is a mega-popular
+    project (golang/go, tensorflow, kubernetes) that just sits on Trending from its
+    sheer size. Either is kept only if it's genuinely current: a brand-new repo, a
+    real star spike today, or active HN discussion / an X share."""
+    if r.new_repo:
+        return False
+    if r.stars < config.EVERGREEN_STARS:
+        return False
+    if set(r.sources) == {"web"}:
+        return True                                       # web-only re-list of a famous repo
+    spiking = r.stars_today >= config.EVERGREEN_VELOCITY  # genuinely surging, not passive
+    discussed = bool({"hn", "x"} & set(r.sources))        # a current conversation worth surfacing
+    return not (spiking or discussed)

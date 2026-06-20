@@ -14,6 +14,10 @@ MAX_ITEMS = int(os.environ.get("GH_RADAR_MAX_ITEMS", "50"))
 # A repo that ONLY appears in a "best tools" web article and is already this
 # popular is evergreen, not news — filter it out (the article just re-listed it).
 EVERGREEN_STARS = int(os.environ.get("GH_RADAR_EVERGREEN_STARS", "50000"))
+# A repo this big (golang/go, tensorflow, kubernetes) sits on Trending every day
+# from sheer mass, not news. Treat it as evergreen noise UNLESS it's genuinely
+# spiking (>= this many stars/day) or being discussed on HN/X.
+EVERGREEN_VELOCITY = int(os.environ.get("GH_RADAR_EVERGREEN_VELOCITY", "250"))
 
 # Text-length caps (chars) for the digest blurbs — kept here so the email's
 # verbosity is tunable in one place.
