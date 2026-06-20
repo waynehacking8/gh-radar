@@ -2,6 +2,7 @@
 import os
 import smtplib
 import sys
+import time
 from email.header import Header
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -26,10 +27,25 @@ def send_email(subject, md):
         port = int(os.environ.get("SMTP_PORT", "587"))
     except ValueError:
         port = 587
-    with smtplib.SMTP(host, port, timeout=30) as s:
-        s.ehlo()
-        s.starttls()
-        s.login(user, pw)
-        s.sendmail(user, [to], msg.as_string())
-    print(f"  ✓ emailed digest to {to}")
-    return True
+    attempts = int(os.environ.get("SMTP_RETRIES", "4"))
+    backoff = float(os.environ.get("SMTP_RETRY_BACKOFF", "5"))   # 5s, 10s, 15s …
+    last_err = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with smtplib.SMTP(host, port, timeout=30) as s:
+                s.ehlo()
+                s.starttls()
+                s.login(user, pw)
+                s.sendmail(user, [to], msg.as_string())
+            tag = f" (attempt {attempt})" if attempt > 1 else ""
+            print(f"  ✓ emailed digest to {to}{tag}")
+            return True
+        except (smtplib.SMTPException, OSError) as e:    # transient: auth blip, TLS reset, timeout
+            last_err = e
+            print(f"  ! email attempt {attempt}/{attempts} failed: {e}", file=sys.stderr)
+            if attempt < attempts:
+                time.sleep(backoff * attempt)
+    # Retries spent, and SMTP *was* configured — this is a real failure, not a
+    # local no-op. Raise so the Actions job goes red and GitHub emails you the
+    # failure; a missed digest must never look like a silent success.
+    raise RuntimeError(f"email delivery failed after {attempts} attempts: {last_err}")

@@ -262,7 +262,7 @@ def src_x():
     """GitHub repos shared by curated X accounts, scraped via Firecrawl (free, no
     login wall). English accounts link the repo; Chinese accounts describe it in
     prose, resolved by LLM name-extract + GitHub star match."""
-    accounts = config.split_env("GH_RADAR_X_ACCOUNTS", "axichuhai,dotey,op7418")
+    accounts = config.split_env("GH_RADAR_X_ACCOUNTS", "axichuhai,dotey,op7418,precisox")
     if not accounts:
         print("  i X disabled (GH_RADAR_X_ACCOUNTS empty)", file=sys.stderr)
         return {}
