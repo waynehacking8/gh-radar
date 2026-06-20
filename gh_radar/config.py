@@ -15,6 +15,13 @@ MAX_ITEMS = int(os.environ.get("GH_RADAR_MAX_ITEMS", "50"))
 # popular is evergreen, not news — filter it out (the article just re-listed it).
 EVERGREEN_STARS = int(os.environ.get("GH_RADAR_EVERGREEN_STARS", "50000"))
 
+# Text-length caps (chars) for the digest blurbs — kept here so the email's
+# verbosity is tunable in one place.
+X_PROSE_MAX = int(os.environ.get("GH_RADAR_X_PROSE_MAX", "300"))      # tweet text fed to the LLM
+X_CONTEXT_MAX = int(os.environ.get("GH_RADAR_X_CONTEXT_MAX", "280"))  # post text retained as scene
+QUOTE_MAX = int(os.environ.get("GH_RADAR_QUOTE_MAX", "160"))          # verbatim quote in the email
+ZH_MAX = int(os.environ.get("GH_RADAR_ZH_MAX", "400"))               # generated zh blurb
+
 # Scoring weights — hoisted here so ranking is tunable without touching logic.
 W = {
     "stars_today": 1.0,        # trending velocity

@@ -23,8 +23,7 @@ class Repo:
     x_url: str = ""
     x_likes: int = 0
     fc_url: str = ""                                   # source web article
-    context: str = ""                                  # how a human framed it when
-    #   sharing (X post text / HN-Reddit title) — the scene the zh summary draws on
+    context: str = ""                                  # sharer's own framing (X post / title)
 
     # --- enriched from the GitHub repo API ---
     stars: int = 0

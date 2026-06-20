@@ -5,6 +5,7 @@ import re
 import sys
 from html import escape as html_escape
 
+from . import config
 from .clients import claude_json
 
 SOURCE_NAMES = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
@@ -37,7 +38,7 @@ def summarize_zh(repos):
     for r in repos:
         zh = mapping.get(r.full_name)
         if isinstance(zh, str) and zh.strip():
-            r.zh = " ".join(zh.split())[:400]          # richer blurb (was a one-liner)
+            r.zh = " ".join(zh.split())[:config.ZH_MAX]   # richer blurb (was a one-liner)
             n += 1
     print(f"  ✓ Chinese summaries: {n}/{len(repos)}", file=sys.stderr)
 
@@ -118,7 +119,7 @@ def render_md(repos, when):
             lines.append("")
             lines.append(f"> {r.desc}")
         if r.context and "x" in r.sources:            # the sharer's own words — the scene
-            q = r.context if len(r.context) <= 160 else r.context[:159] + "…"
+            q = r.context if len(r.context) <= config.QUOTE_MAX else r.context[:config.QUOTE_MAX - 1] + "…"
             who = ("@" + r.x_by[0]) if r.x_by else "X"
             lines.append("")
             lines.append(f"> 💬 {who}：「{q}」")
@@ -137,7 +138,9 @@ def _inline(s):
     description containing <, >, & or quotes can't break the email."""
     s = html_escape(s, quote=True)
     s = re.sub(r"\[(.*?)\]\((.*?)\)", r'<a href="\2">\1</a>', s)
-    s = re.sub(r"_(.+?)_", r"<em>\1</em>", s)
+    # Italic only at word boundaries, so underscores *inside* a token — an @handle
+    # like @unalome_sol or a snake_case name quoted from a tweet — are left intact.
+    s = re.sub(r"(?<![A-Za-z0-9])_(\S(?:.*?\S)?)_(?![A-Za-z0-9])", r"<em>\1</em>", s)
     return s
 
 

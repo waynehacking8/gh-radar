@@ -280,7 +280,7 @@ def src_x():
         if likes >= e["x_likes"]:                 # keep the most-liked post's text + link
             e["x_likes"], e["x_url"] = likes, (url or e["x_url"])
             if context:
-                e["context"] = " ".join(context.split())[:280]
+                e["context"] = " ".join(context.split())[:config.X_CONTEXT_MAX]
         if info:                              # pre-enrich from the resolve fetch (saves an API call)
             e["stars"] = info.get("stargazers_count", e.get("stars", 0))
             e["desc"] = (info.get("description") or e.get("desc", "")).strip()
@@ -298,7 +298,7 @@ def src_x():
                     add(full, user, url, likes, context=text)
             elif X_TOOL_RE.search(text):
                 prose.append({"user": user, "url": url, "likes": likes,
-                              "text": text[:300], "claim_stars": parse_star_count(text)})
+                              "text": text[:config.X_PROSE_MAX], "claim_stars": parse_star_count(text)})
 
     prose.sort(key=lambda p: p["likes"], reverse=True)
     _x_identify(prose[:max_llm], add)
