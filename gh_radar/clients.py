@@ -1,6 +1,8 @@
 """Transport layer: thin clients for the network services. Every call degrades to
 None/empty on failure so a single outage never propagates up and breaks the run."""
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -39,10 +41,10 @@ def gh_api(path):
         return None
 
 
-def firecrawl(endpoint, payload, retries=3):
+def firecrawl(endpoint, payload):
     """Firecrawl (free + keyless; FIRECRAWL_API_KEY raises limits a lot). Retries on
     429 with backoff (honouring Retry-After). -> data dict / None. Never raises."""
-    import os
+    retries = 3
     headers = {"User-Agent": config.UA, "Content-Type": "application/json"}
     fkey = os.environ.get("FIRECRAWL_API_KEY")
     if fkey:
@@ -80,8 +82,6 @@ def scrape_md(url):
 def claude_json(prompt, want="object", model="sonnet", timeout=240):
     """Run `claude -p` and parse a JSON object/array from its reply. Returns the
     parsed value, or None if claude is absent/unauthenticated/times out/malformed."""
-    import json as _json
-    import re
     cli = shutil.which("claude")
     if not cli:
         return None
@@ -92,11 +92,11 @@ def claude_json(prompt, want="object", model="sonnet", timeout=240):
         )
         if proc.returncode != 0:
             raise RuntimeError(f"claude exited {proc.returncode}: {proc.stderr.strip()[:200]}")
-        text = _json.loads(proc.stdout).get("result", "") or ""
+        text = json.loads(proc.stdout).get("result", "") or ""
         m = re.search(r"\{.*\}" if want == "object" else r"\[.*\]", text, re.S)
         if not m:
             raise ValueError("no JSON in model output")
-        return _json.loads(m.group(0))
+        return json.loads(m.group(0))
     except Exception as e:  # noqa: BLE001
         print(f"  ! claude call failed ({e})", file=sys.stderr)
         return None

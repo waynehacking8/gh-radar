@@ -1,6 +1,6 @@
 """The core data model. One typed Repo replaces the old untyped dict bag, so a
 mistyped field fails loudly and the available signals are self-documenting."""
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -35,13 +35,7 @@ class Repo:
     zh: str = ""                                       # Traditional-Chinese summary
     score: float = 0.0
 
-    _NAMES = None
-
     def merge(self, attrs):
-        """Apply a source's contribution. Only known fields are accepted, so a
-        typo'd key can't silently create a phantom attribute."""
-        if Repo._NAMES is None:
-            Repo._NAMES = {f.name for f in fields(Repo)}
+        """Apply a source's contribution (its dict of field -> value)."""
         for k, v in attrs.items():
-            if k in Repo._NAMES:
-                setattr(self, k, v)
+            setattr(self, k, v)
