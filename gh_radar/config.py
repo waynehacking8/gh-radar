@@ -21,18 +21,18 @@ EVERGREEN_STARS = int(os.environ.get("GH_RADAR_EVERGREEN_STARS", "50000"))
 # A repo this big (golang/go, tensorflow, kubernetes) sits on Trending every day
 # from sheer mass, not news. Treat it as evergreen noise UNLESS it's genuinely
 # spiking (>= this many stars/day) or being discussed on HN/X.
-EVERGREEN_VELOCITY = int(os.environ.get("GH_RADAR_EVERGREEN_VELOCITY", "250"))
+EVERGREEN_VELOCITY = 250
 
 # Text-length caps (chars) for the digest blurbs — kept here so the email's
 # verbosity is tunable in one place.
-X_PROSE_MAX = int(os.environ.get("GH_RADAR_X_PROSE_MAX", "300"))      # tweet text fed to the LLM
-X_CONTEXT_MAX = int(os.environ.get("GH_RADAR_X_CONTEXT_MAX", "280"))  # post text retained as scene
-QUOTE_MAX = int(os.environ.get("GH_RADAR_QUOTE_MAX", "160"))          # verbatim quote in the email
-ZH_MAX = int(os.environ.get("GH_RADAR_ZH_MAX", "400"))               # generated zh blurb
+X_PROSE_MAX = 300      # tweet text fed to the LLM
+X_CONTEXT_MAX = 280    # post text retained as scene
+QUOTE_MAX = 160        # verbatim quote in the email
+ZH_MAX = 400           # generated zh blurb
 # zh summaries are generated in small batches so one slow/failed LLM call can't
 # time out and drop *every* summary (the richer 2-3 sentence blurbs made a single
 # all-repos call exceed claude's timeout).
-SUMMARY_BATCH = int(os.environ.get("GH_RADAR_SUMMARY_BATCH", "12"))
+SUMMARY_BATCH = 12
 
 # Scoring weights — hoisted here so ranking is tunable without touching logic.
 W = {

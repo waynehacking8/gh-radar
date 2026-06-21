@@ -27,14 +27,8 @@ def send_email(subject, md):
         port = int(os.environ.get("SMTP_PORT", "587"))
     except ValueError:
         port = 587
-    try:
-        attempts = max(1, int(os.environ.get("SMTP_RETRIES", "4")))   # always >=1 try
-    except ValueError:
-        attempts = 4
-    try:
-        backoff = max(0.0, float(os.environ.get("SMTP_RETRY_BACKOFF", "5")))  # 5s,10s,15s
-    except ValueError:
-        backoff = 5.0
+    attempts = 4          # SMTP send retries
+    backoff = 5.0         # seconds, linear backoff: 5s, 10s, 15s
     last_err = None
     for attempt in range(1, attempts + 1):
         try:

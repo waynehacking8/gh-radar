@@ -275,7 +275,7 @@ def src_x():
     if not accounts:
         print("  i X disabled (GH_RADAR_X_ACCOUNTS empty)", file=sys.stderr)
         return {}
-    max_llm = int(os.environ.get("GH_RADAR_X_MAX_LLM", "30"))
+    max_llm = 30           # cap repos sent to the LLM for prose-tweet identification
     out, prose = {}, []
 
     def add(full, user, url, likes, info=None, context=""):
@@ -323,7 +323,7 @@ def src_fc_articles():
     if not queries:
         return {}
     out = {}
-    per_q = int(os.environ.get("GH_RADAR_FC_PER_QUERY", "2"))
+    per_q = 2              # Firecrawl results kept per search query
     for qi, query in enumerate(queries):
         if qi:
             time.sleep(1.0)
