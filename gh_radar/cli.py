@@ -12,7 +12,7 @@ from .models import Repo
 from .render import render_md, summarize_zh
 from .scoring import is_evergreen_noise, score
 from .sources import SKIP_NAME_RE, SOURCES, enrich
-from .state import load_seen, save_seen
+from .state import already_ran_today, load_seen, mark_ran_today, save_seen
 
 
 def collect():
@@ -55,11 +55,17 @@ def select(repos, seen):
 
 
 def main():
+    when = datetime.now().strftime("%Y-%m-%d")
+    # Multi-window cron fires several times a day so a dropped/delayed fire still
+    # lands one run. Only the first fire of the day does the work; the rest no-op.
+    if already_ran_today(when):
+        print(f"gh-radar: already ran today ({when}) — skipping this window.",
+              file=sys.stderr)
+        return
     print("gh-radar: collecting…", file=sys.stderr)
     repos, errors = collect()
     seen = load_seen()
     top = select(repos, seen)
-    when = datetime.now().strftime("%Y-%m-%d")
     if not top:
         # No NEW repos. Two very different reasons look identical here, so split them:
         if not repos:
@@ -76,6 +82,7 @@ def main():
                    f"# GitHub Radar — {when}\n\n"
                    "_雷達今天掃過所有來源，沒有發現新的 repo——可能都看過了，或都未達門檻。"
                    "系統運作正常，明天見。_\n")
+        mark_ran_today(when)               # quiet day still counts as "ran today"
         return
 
     summarize_zh(top)                                  # best-effort zh blurbs
@@ -94,3 +101,4 @@ def main():
     for r in top:
         seen[r.full_name] = now
     save_seen(seen)
+    mark_ran_today(when)                   # later windows today will no-op

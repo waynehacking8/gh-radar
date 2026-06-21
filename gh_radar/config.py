@@ -6,6 +6,10 @@ UA = "gh-radar/1.0 (+https://github.com/)"
 
 STATE_DIR = Path(os.environ.get("GH_RADAR_HOME", Path.home() / ".gh-radar"))
 SEEN_PATH = STATE_DIR / "seen.json"
+# Daily run sentinel: holds the date string of the last completed run. Lets the
+# multi-window fallback cron fire many times a day (drop-resistant) while only the
+# first fire of the day actually collects + emails; later fires no-op.
+LAST_RUN_PATH = STATE_DIR / "last-run"
 
 GH_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 MIN_STARS = int(os.environ.get("MIN_STARS", "30"))

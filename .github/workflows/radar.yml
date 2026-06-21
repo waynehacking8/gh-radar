@@ -14,13 +14,24 @@ name: gh-radar
 
 on:
   schedule:
-    - cron: "12 0 * * *"  # 00:12 UTC daily (08:12 Taipei) — off the top of the
-                          # hour: "0 0" is the most congested slot, where GitHub
-                          # most often delays or silently drops the scheduled run.
+    # Multi-window FALLBACK. A single daily cron isn't reliable here: GitHub cron
+    # on this account lags 3–6h (measured on content-radar) and silently DROPS
+    # fires in congested slots — and a brand-new repo's first scheduled fires are
+    # skipped entirely. So fire every 30 min across 01:00–07:30 UTC (09:00–15:30
+    # Taipei), off the congested midnight band. The daily sentinel (state/last-run,
+    # checked in cli.main) makes every fire after the first of the day a no-op —
+    # one digest/day; the extra fires only guarantee at least one actually lands.
+    - cron: "*/30 1-7 * * *"
   workflow_dispatch: {}    # also runnable on-demand from the Actions tab
 
 permissions:
   contents: write
+
+# A late fire must not overlap the next window's fire (double email + push race).
+# Serialize on a single group; let an in-flight run finish rather than cancel it.
+concurrency:
+  group: gh-radar
+  cancel-in-progress: false
 
 jobs:
   radar:
