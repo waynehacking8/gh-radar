@@ -1,0 +1,44 @@
+name: job-radar (daily, shared secrets)
+# Runs waynehacking8/job-radar daily, reusing THIS repo's GMAIL_* secrets to email
+# the Taiwan ML/GPU digest. job-radar's dedup state is stored here (job-radar-state/)
+# so tomorrow only shows NEW postings — no need for job-radar to hold its own secrets.
+on:
+  schedule:
+    - cron: "*/30 1-7 * * *"     # same multi-window as gh-radar; daily sentinel no-ops the extras
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: job-radar
+  cancel-in-progress: false
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Run job-radar (reuse this repo's GMAIL secrets)
+        env:
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.GMAIL_USER }}
+          SMTP_PASS: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          git clone --depth 1 https://github.com/waynehacking8/job-radar /tmp/jr
+          cd /tmp/jr
+          JOB_RADAR_HOME="$GITHUB_WORKSPACE/job-radar-state" python radar.py
+      - name: Persist job-radar dedup state
+        run: |
+          git config user.name "job-radar[bot]"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f job-radar-state/ || true
+          git commit -m "job-radar dedup state: $(date -u +%F)" || { echo "nothing to persist"; exit 0; }
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash -X theirs origin "${GITHUB_REF_NAME}" && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true; sleep $((i*2))
+          done
+          exit 1
