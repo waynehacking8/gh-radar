@@ -81,7 +81,8 @@ jobs:
           git config user.name "gh-radar[bot]"
           git config user.email "actions@users.noreply.github.com"
           git add -f digests/ state/
-          git commit -m "radar: digest for $(date -u +%F)" || { echo "nothing new"; exit 0; }
+          radar_day="$(cat state/last-run 2>/dev/null || date -u +%F)"
+          git commit -m "radar: digest for $radar_day" || { echo "nothing new"; exit 0; }
           # Rebase before push so a concurrent commit (a manual dispatch overlapping
           # the scheduled run, or a hand push) doesn't fail the job with a spurious
           # non-fast-forward. state/seen.json is a single-line JSON and can't be
