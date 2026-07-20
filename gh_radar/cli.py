@@ -3,8 +3,9 @@
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from . import config
 from .email_out import send_email
@@ -67,8 +68,14 @@ def select(repos, seen):
     return out[:config.MAX_ITEMS]
 
 
+def radar_day(now=None):
+    """Calendar day for the reader, independent of the CI runner's UTC clock."""
+    now = now or datetime.now(timezone.utc)
+    return now.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d")
+
+
 def main():
-    when = datetime.now().strftime("%Y-%m-%d")
+    when = radar_day()
     # Multi-window cron fires several times a day so a dropped/delayed fire still
     # lands one run. Only the first fire of the day does the work; the rest no-op.
     if already_ran_today(when):

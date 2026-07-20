@@ -1,11 +1,16 @@
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 
-from gh_radar.cli import main, select
+from gh_radar.cli import main, radar_day, select
 from gh_radar.models import Repo
 
 
 class SelectionTests(unittest.TestCase):
+    def test_radar_day_uses_reader_timezone_not_runner_utc(self):
+        before_midnight_utc = datetime(2026, 7, 20, 23, 30, tzinfo=timezone.utc)
+        self.assertEqual(radar_day(before_midnight_utc), "2026-07-21")
+
     @patch("gh_radar.cli.enrich", return_value=True)
     def test_select_drops_weak_repo_and_keeps_important_repo(self, _enrich):
         weak = Repo("owner/weak", sources=["trending"], stars=500, stars_today=20)

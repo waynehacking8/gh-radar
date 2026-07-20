@@ -108,6 +108,8 @@ All via env (see `config.example.env`):
   the importance gate. A quiet run sends no email.
 - `GH_RADAR_SOURCE_MAX_AGE_HOURS` (48), `GH_RADAR_NEW_REPO_MAX_AGE_DAYS` (7) —
   explicit source freshness windows.
+- `GH_RADAR_TIMEZONE` (`Asia/Taipei`) — calendar date used by the daily sentinel
+  and digest filename, independent of the GitHub runner's UTC clock.
 - `GH_RADAR_X_ACCOUNTS`, `GH_RADAR_SUBREDDITS`, `GH_RADAR_TREND_LANGS` — what
   each source watches.
 - `GH_RADAR_VAULT` / `GH_RADAR_DIGEST_DIR` — also save each digest as Markdown.
