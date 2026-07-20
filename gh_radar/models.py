@@ -10,6 +10,7 @@ class Repo:
 
     # --- per-source signals ---
     stars_today: int = 0                               # trending velocity
+    trending_rank: int = 0                             # global daily page only
     hn_points: int = 0
     hn_url: str = ""
     new_repo: bool = False
@@ -22,7 +23,6 @@ class Repo:
     x_by: list = field(default_factory=list)
     x_url: str = ""
     x_likes: int = 0
-    fc_url: str = ""                                   # source web article
     context: str = ""                                  # sharer's own framing (X post / title)
 
     # --- enriched from the GitHub repo API ---
@@ -34,6 +34,7 @@ class Repo:
     # --- derived ---
     zh: str = ""                                       # Traditional-Chinese summary
     score: float = 0.0
+    important_because: list = field(default_factory=list)
 
     def merge(self, attrs):
         """Apply a source's contribution (its dict of field -> value)."""

@@ -9,7 +9,7 @@ from . import config
 from .clients import claude_json
 
 SOURCE_NAMES = {"trending": "Trending", "hn": "Hacker News", "new": "new repos",
-                "lobsters": "Lobsters", "reddit": "Reddit", "x": "X", "web": "web articles"}
+                "lobsters": "Lobsters", "reddit": "Reddit", "x": "X"}
 
 
 _ZH_PROMPT = (
@@ -52,8 +52,7 @@ def summarize_zh(repos):
 
 
 def provenance(r):
-    """Human-readable source attribution. Firecrawl-derived sources (X, web) are
-    explicitly marked so the origin is always clear."""
+    """Human-readable source attribution."""
     parts = []
     if "trending" in r.sources:
         parts.append("GitHub Trending")
@@ -68,9 +67,6 @@ def provenance(r):
     if "x" in r.sources:
         who = ", ".join("@" + h for h in r.x_by[:2])
         parts.append(f"Firecrawl → X {who}".strip())
-    if "web" in r.sources:
-        host = re.sub(r"^https?://(www\.)?", "", r.fc_url).split("/")[0]
-        parts.append(f"Firecrawl → {host}" if host else "Firecrawl (web article)")
     return " · ".join(parts) or "unknown"
 
 
@@ -87,8 +83,6 @@ def _tags(r):
         tags.append(f"👽 r/{r.reddit_sub} {r.reddit_points}")
     if "lobsters" in r.sources:
         tags.append(f"🦞 {r.lobsters_score}")
-    if "web" in r.sources:
-        tags.append("📰 web")
     if r.new_repo:
         tags.append("🆕 new")
     return " · ".join(tags)
@@ -104,20 +98,21 @@ def _refs(r):
         refs.append(f"[Reddit]({r.reddit_url})")
     if r.lobsters_url:
         refs.append(f"[Lobsters]({r.lobsters_url})")
-    if r.fc_url:
-        refs.append(f"[article]({r.fc_url})")
     return refs
 
 
 def render_md(repos, when):
     used = sorted({s for r in repos for s in r.sources})
     pretty = ", ".join(SOURCE_NAMES.get(s, s) for s in used)
+    noun = "repo" if len(repos) == 1 else "repos"
     lines = [f"# GitHub Radar — {when}", "",
-             f"_{len(repos)} new tools surfaced from {pretty}._", ""]
+             f"_{len(repos)} important {noun} surfaced from {pretty}._", ""]
     for i, r in enumerate(repos, 1):
         lang = f" · {r.lang}" if r.lang else ""
         lines.append(f"### {i}. [{r.full_name}]({r.url})")
         lines.append(f"⭐ {r.stars:,} · {_tags(r)}{lang}")
+        if r.important_because:
+            lines.append(f"🎯 Why now: {' · '.join(r.important_because)}")
         if r.zh:
             lines.append("")
             lines.append(f"> {r.zh}")

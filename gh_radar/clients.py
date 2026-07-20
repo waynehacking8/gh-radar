@@ -14,7 +14,6 @@ import urllib.request
 from . import config
 
 FC_SCRAPE = "https://api.firecrawl.dev/v2/scrape"
-FC_SEARCH = "https://api.firecrawl.dev/v2/search"
 
 
 def http_get(url, headers=None, timeout=20):

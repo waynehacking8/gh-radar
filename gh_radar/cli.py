@@ -10,7 +10,7 @@ from . import config
 from .email_out import send_email
 from .models import Repo
 from .render import render_md, summarize_zh
-from .scoring import is_evergreen_noise, score
+from .scoring import importance_reasons, is_evergreen_noise, score
 from .sources import SKIP_NAME_RE, SOURCES, enrich
 from .state import already_ran_today, load_seen, mark_ran_today, save_seen
 
@@ -37,17 +37,30 @@ def collect():
 
 
 def select(repos, seen):
-    """Filter (skip-list, already-seen, dead/fork, too-small, evergreen noise),
-    enrich, score, and return the top N."""
+    """Return only repos important enough to interrupt the reader.
+
+    Discovery is intentionally broad. Delivery is not: after the basic hygiene
+    filters, every repo must clear the explicit importance gate before ranking.
+    """
     cutoff = time.time() - config.SEEN_TTL_DAYS * 86400
     out = []
     for full, r in repos.items():
         if SKIP_NAME_RE.search(full) or seen.get(full, 0) > cutoff:
             continue
+        # Most of the broad candidate pool can be rejected from source signals
+        # alone (GitHub's new-repo search already supplies total stars). This
+        # turns ~200 serial GitHub lookups into only the handful that can pass and avoids
+        # spending rate limit or runtime on items that can never be delivered.
+        pre_reasons = importance_reasons(r)
+        if not pre_reasons:
+            continue
         if not enrich(r) or r.stars < config.MIN_STARS or is_evergreen_noise(r):
             continue
         if not r.url:
             r.url = f"https://github.com/{full}"
+        r.important_because = importance_reasons(r)
+        if not r.important_because:
+            continue
         r.score = score(r)
         out.append(r)
     out.sort(key=lambda r: r.score, reverse=True)
@@ -66,6 +79,7 @@ def main():
     repos, errors = collect()
     seen = load_seen()
     top = select(repos, seen)
+    print(f"  important: {len(top)} of {len(repos)} collected repos", file=sys.stderr)
     if not top:
         # No NEW repos. Two very different reasons look identical here, so split them:
         if not repos:
@@ -75,14 +89,10 @@ def main():
             raise RuntimeError(
                 f"no repos collected from any source ({errors}/{len(SOURCES)} "
                 f"crashed) — aborting instead of sending a false 'nothing new'")
-        # Genuinely nothing new (all already seen / below threshold). Heartbeat so a
-        # quiet day is visibly "ran, nothing new" and not mistaken for a broken run.
-        print("  nothing new today.", file=sys.stderr)
-        send_email(f"GitHub Radar — {when}（今天沒有新工具）",
-                   f"# GitHub Radar — {when}\n\n"
-                   "_雷達今天掃過所有來源，沒有發現新的 repo——可能都看過了，或都未達門檻。"
-                   "系統運作正常，明天見。_\n")
-        mark_ran_today(when)               # quiet day still counts as "ran today"
+        # A quiet day must stay quiet. "Nothing new" heartbeat emails were still
+        # pushes and undermined the promise that every notification is important.
+        print("  no important new repos today — no email sent.", file=sys.stderr)
+        mark_ran_today(when)
         return
 
     summarize_zh(top)                                  # best-effort zh blurbs
@@ -95,7 +105,7 @@ def main():
         (path / f"github-radar-{when}.md").write_text(md)
         print(f"  ✓ wrote {path / f'github-radar-{when}.md'}", file=sys.stderr)
 
-    send_email(f"GitHub Radar — {when} ({len(top)} tools)", md)
+    send_email(f"GitHub Radar — {when} ({len(top)} important repos)", md)
 
     now = time.time()
     for r in top:

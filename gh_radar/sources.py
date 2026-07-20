@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from html import unescape
 
 from . import config
-from .clients import FC_SEARCH, claude_json, firecrawl, gh_api, http_get, scrape_md
+from .clients import claude_json, gh_api, http_get, scrape_md
 
 # ----------------------------------------------------------------- repo extraction
 SKIP_NAME_RE = re.compile(
@@ -60,12 +60,51 @@ def parse_star_count(text):
     return None
 
 
+# ------------------------------------------------------------------ freshness
+def _recent_iso(value, max_age_hours=None, now=None):
+    """Whether an ISO timestamp is recent enough to count as current signal.
+
+    Missing or malformed time is rejected: for a push-only-important product,
+    uncertain freshness is not evidence of importance.
+    """
+    if not value:
+        return False
+    try:
+        created = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return False
+    now = now or datetime.now(timezone.utc)
+    age = (now - created.astimezone(timezone.utc)).total_seconds()
+    hours = max_age_hours if max_age_hours is not None else config.SOURCE_MAX_AGE_HOURS
+    return -300 <= age <= hours * 3600
+
+
+def _recent_unix(value, max_age_hours=None, now=None):
+    """Unix-timestamp counterpart used by HN and Reddit payloads."""
+    try:
+        created = datetime.fromtimestamp(float(value), timezone.utc)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return False
+    now = now or datetime.now(timezone.utc)
+    age = (now - created).total_seconds()
+    hours = max_age_hours if max_age_hours is not None else config.SOURCE_MAX_AGE_HOURS
+    return -300 <= age <= hours * 3600
+
+
 # ------------------------------------------------------------------ GitHub Trending
 TREND_LANGS = config.split_env("GH_RADAR_TREND_LANGS", "python,rust,go,typescript,c++,javascript")
 
 
-def _parse_trending(html, out, daily):
-    for block in html.split('<article class="Box-row">')[1:]:
+def _parse_trending(html, out, global_scope=False):
+    """Merge one Trending page into ``out``.
+
+    Only the language-agnostic pages set rank. A repo being #1 in a narrow
+    language page is useful discovery signal, but it is not the global
+    "GitHub Trending No. 1" event the importance gate promises to surface.
+    """
+    for rank, block in enumerate(html.split('<article class="Box-row">')[1:], 1):
         m = re.search(r'href="/([^"/]+)/([^"/]+)/stargazers"', block)
         if not m:
             continue
@@ -76,31 +115,34 @@ def _parse_trending(html, out, daily):
             desc = unescape(re.sub(r"<[^>]+>", "", dm.group(1))).strip()
         sm = re.search(r'/stargazers"[^>]*>\s*([\d,]+)', block)
         stars = int(sm.group(1).replace(",", "")) if sm else 0
-        # Only the daily page's "stars today" is a real per-day velocity; the weekly
-        # page reports "stars this week", which must NOT be stored as stars_today
-        # (it would render as a wildly inflated "N/day"). Weekly pages still surface
-        # the repo + its total star count for discovery.
-        velocity = 0
-        if daily:
-            tm = re.search(r"([\d,]+)\s+stars today", block)
-            velocity = int(tm.group(1).replace(",", "")) if tm else 0
+        tm = re.search(r"([\d,]+)\s+stars today", block)
+        velocity = int(tm.group(1).replace(",", "")) if tm else 0
         prev = out.get(full, {})
+        daily_rank = prev.get("trending_rank", 0)
+        if global_scope:
+            daily_rank = min(daily_rank, rank) if daily_rank else rank
         out[full] = {
             "stars_today": max(velocity, prev.get("stars_today", 0)),
             "desc": prev.get("desc") or desc,
             "stars": max(stars, prev.get("stars", 0)),
+            "trending_rank": daily_rank,
         }
 
 
 def src_github_trending():
-    """Scrape github.com/trending across windows + languages -> {full: {...}}."""
+    """Scrape today's global + per-language Trending pages.
+
+    The old weekly page was deliberately removed: it kept seven-day-old repos in
+    the candidate pool and was the largest source of "not actually trending now"
+    entries.
+    """
     out = {}
-    pages = ["https://github.com/trending?since=daily",
-             "https://github.com/trending?since=weekly"]
-    pages += [f"https://github.com/trending/{lang}?since=daily" for lang in TREND_LANGS]
-    for url in pages:
+    pages = [("https://github.com/trending?since=daily", True)]
+    pages += [(f"https://github.com/trending/{lang}?since=daily", False)
+              for lang in TREND_LANGS]
+    for url, global_scope in pages:
         try:
-            _parse_trending(http_get(url), out, daily="since=daily" in url)
+            _parse_trending(http_get(url), out, global_scope=global_scope)
         except Exception as e:  # noqa: BLE001
             print(f"  ! trending fetch failed ({url}): {e}", file=sys.stderr)
     return out
@@ -119,6 +161,8 @@ def src_hacker_news():
         print(f"  ! hacker news fetch failed: {e}", file=sys.stderr)
         return out
     for h in data.get("hits", []):
+        if not _recent_unix(h.get("created_at_i"), max_age_hours=24):
+            continue
         points = h.get("points") or 0
         hn_url = f"https://news.ycombinator.com/item?id={h.get('objectID')}"
         title = (h.get("title") or "").strip()
@@ -130,20 +174,33 @@ def src_hacker_news():
 
 # ------------------------------------------------------------------- GitHub Search
 def src_github_new():
-    """Brand-new repos (created <=10 days ago) already gaining stars."""
+    """Brand-new repos already gaining stars."""
     out = {}
-    since = datetime.now(timezone.utc).timestamp() - 10 * 86400
+    since = datetime.now(timezone.utc).timestamp() - config.NEW_REPO_MAX_AGE_DAYS * 86400
     since_d = datetime.fromtimestamp(since, timezone.utc).strftime("%Y-%m-%d")
-    q = f"created:>={since_d}+stars:>={max(config.MIN_STARS, 50)}"
+    q = (f"created:>={since_d}+stars:>={max(config.MIN_STARS, 50)}"
+         "+fork:false+archived:false")
     data = gh_api(f"/search/repositories?q={q}&sort=stars&order=desc&per_page=30")
     for it in (data or {}).get("items", []):
-        out[it["full_name"]] = {"new_repo": True}
+        if not _recent_iso(it.get("created_at"),
+                           max_age_hours=config.NEW_REPO_MAX_AGE_DAYS * 24):
+            continue
+        # Repository search already returns the enrichment fields. Keeping them
+        # avoids a second /repos/<name> call for every one of the 30 candidates
+        # and lets the importance gate reject sub-breakout repos immediately.
+        out[it["full_name"]] = {
+            "new_repo": True,
+            "stars": it.get("stargazers_count", 0),
+            "desc": (it.get("description") or "").strip(),
+            "lang": it.get("language") or "",
+            "url": it.get("html_url") or "",
+        }
     return out
 
 
 # ------------------------------------------------------------------------ Lobsters
 def src_lobsters():
-    """Github repos linked from the Lobsters hottest feed."""
+    """Fresh GitHub repos linked from the Lobsters hottest feed."""
     out = {}
     try:
         data = json.loads(http_get("https://lobste.rs/hottest.json"))
@@ -151,6 +208,8 @@ def src_lobsters():
         print(f"  ! lobsters fetch failed: {e}", file=sys.stderr)
         return out
     for s in data:
+        if not _recent_iso(s.get("created_at")):
+            continue
         c_url = s.get("comments_url") or s.get("short_id_url") or s.get("url") or ""
         pts = s.get("score") or 0
         for full in repos_in(s.get("url") or ""):
@@ -191,6 +250,8 @@ def src_reddit():
             continue
         for child in data.get("data", {}).get("children", []):
             p = child.get("data", {})
+            if not _recent_unix(p.get("created_utc")):
+                continue
             pts = p.get("ups") or p.get("score") or 0
             permalink = "https://reddit.com" + p.get("permalink", "")
             title = (p.get("title") or "").strip()
@@ -207,16 +268,37 @@ X_TOOL_RE = re.compile(r"github|开源|開源|\bstar\b|星标|星標|⭐|repo|�
 
 
 def _parse_x_posts(md):
-    """Parse Firecrawl's X-profile markdown into [{text, url, likes}]."""
+    """Parse fresh posts from Firecrawl's X-profile markdown.
+
+    Profiles can contain old pinned posts. X status IDs are Snowflakes whose
+    timestamp is intrinsic, so freshness can be verified without trusting page
+    order or an optional scraped date label.
+    """
     posts = []
     for block in re.split(r"\n#{2,3}\s+\d+\.\s+Post", md)[1:]:
         um = re.search(r"\]\((https?://[^)]+/status/\d+)\)", block)
         text = " ".join(re.findall(r"^>\s?(.*)$", block, re.M)).strip()
         lm = re.search(r"Likes:\s*([\d,]+)", block)
-        if text:
+        if text and _recent_x_status(um.group(1) if um else ""):
             posts.append({"text": text, "url": um.group(1) if um else "",
                           "likes": int(lm.group(1).replace(",", "")) if lm else 0})
     return posts
+
+
+def _recent_x_status(url, max_age_hours=None, now=None):
+    """Validate freshness from the timestamp encoded in an X Snowflake ID."""
+    match = re.search(r"/status/(\d+)", url or "")
+    if not match:
+        return False
+    try:
+        unix_ms = (int(match.group(1)) >> 22) + 1_288_834_974_657
+        created = datetime.fromtimestamp(unix_ms / 1000, timezone.utc)
+    except (OverflowError, OSError, ValueError):
+        return False
+    now = now or datetime.now(timezone.utc)
+    age = (now - created).total_seconds()
+    hours = max_age_hours if max_age_hours is not None else config.SOURCE_MAX_AGE_HOURS
+    return -300 <= age <= hours * 3600
 
 
 def _resolve_repo(query, claim_stars):
@@ -311,33 +393,6 @@ def src_x():
     return out
 
 
-# ----------------------------------------------------------- web articles (Firecrawl)
-def src_fc_articles():
-    """Discovery beyond any single account: Firecrawl-search 'best tools' queries,
-    scrape the listicles, harvest the GitHub repos. Disabled if GH_RADAR_FC_QUERIES
-    is empty."""
-    queries = config.split_env(
-        "GH_RADAR_FC_QUERIES",
-        "trending open source AI developer tools 2026|"
-        "underrated useful github repos people are sharing")
-    if not queries:
-        return {}
-    out = {}
-    per_q = 2              # Firecrawl results kept per search query
-    for qi, query in enumerate(queries):
-        if qi:
-            time.sleep(1.0)
-        data = firecrawl(FC_SEARCH, {"query": query, "limit": per_q})
-        results = (data or {}).get("web", []) if isinstance(data, dict) else []
-        for r in results[:per_q]:
-            url = r.get("url") or ""
-            if not url or "github.com" in url:       # the trending page itself adds noise
-                continue
-            for full in repos_in(scrape_md(url)):
-                out.setdefault(full, {"fc_url": url})
-    return out
-
-
 # ---------------------------------------------------------------------- enrichment
 def enrich(repo):
     """Fill missing stars/desc/lang/url from the repo API. Returns False (drop) for
@@ -361,5 +416,4 @@ SOURCES = [
     ("lobsters", src_lobsters),
     ("reddit", src_reddit),
     ("x", src_x),
-    ("web", src_fc_articles),
 ]

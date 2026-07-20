@@ -14,27 +14,82 @@ def score(r):
     s += min(r.x_mentions, W["x_mention_cap"]) * W["x_mention"]
     s += min(r.reddit_points, W["reddit_cap"]) * W["reddit"]
     s += min(r.lobsters_score, W["lobsters_cap"]) * W["lobsters"]
-    if "web" in r.sources:
-        s += W["web_flat"]
     if r.new_repo:
         s += W["new_repo"]
     s += min(r.stars, W["stars_cap"]) * W["stars_tiebreak"]
     s += W["per_source"] * len(r.sources)
+    if r.trending_rank and r.trending_rank <= config.TOP_TRENDING_RANK:
+        # Preserve global Trending leaders near the top after they pass the
+        # importance gate. Rank #1 gets 3x, #2 2x, #3 1x with the default gate.
+        s += max(1, config.TOP_TRENDING_RANK + 1 - r.trending_rank) * W["top_rank"]
     return s
+
+
+def _source_families(r):
+    """Independent discovery families; two GitHub endpoints are one family."""
+    families = set()
+    if {"trending", "new"} & set(r.sources):
+        families.add("GitHub")
+    if "hn" in r.sources:
+        families.add("Hacker News")
+    if "x" in r.sources:
+        families.add("X")
+    if "reddit" in r.sources:
+        families.add("Reddit")
+    if "lobsters" in r.sources:
+        families.add("Lobsters")
+    return families
+
+
+def importance_reasons(r):
+    """Return concrete reasons this repo is important enough to push.
+
+    Ranking answers "which first"; this gate answers the more important
+    question: "should this interrupt the reader at all?" Ordinary language-page
+    Trending entries and weak single-source activity do
+    not qualify. The gate is deterministic so quiet days remain genuinely quiet.
+    """
+    reasons = []
+    if r.trending_rank and r.trending_rank <= config.TOP_TRENDING_RANK:
+        reasons.append(f"GitHub Trending #{r.trending_rank}")
+    if r.stars_today >= config.MOMENTUM_STARS_PER_DAY:
+        reasons.append(f"{r.stars_today:,} stars/day")
+    if r.hn_points >= config.STRONG_HN_POINTS:
+        reasons.append(f"{r.hn_points:,} HN points")
+    if r.x_likes >= config.STRONG_X_LIKES:
+        reasons.append(f"{r.x_likes:,} likes on a curated X post")
+    if r.reddit_points >= config.STRONG_REDDIT_POINTS:
+        reasons.append(f"{r.reddit_points:,} Reddit points")
+    if r.lobsters_score >= config.STRONG_LOBSTERS_SCORE:
+        reasons.append(f"{r.lobsters_score:,} Lobsters points")
+    if r.new_repo and r.stars >= config.BREAKOUT_NEW_REPO_STARS:
+        reasons.append(f"new repo already at {r.stars:,} stars")
+
+    families = _source_families(r)
+    moderate = (
+        r.stars_today >= config.MODERATE_STARS_PER_DAY
+        or r.hn_points >= config.MODERATE_HN_POINTS
+        or r.x_likes >= config.MODERATE_X_LIKES
+        or r.reddit_points >= config.MODERATE_REDDIT_POINTS
+        or r.lobsters_score >= config.MODERATE_LOBSTERS_SCORE
+    )
+    if not reasons and len(families) >= 2 and moderate:
+        reasons.append("corroborated by " + " + ".join(sorted(families)))
+    return reasons
 
 
 def is_evergreen_noise(r):
     """Filter famous, already-huge projects that aren't actually news today. A repo
-    only re-listed in a 'best tools' web article is noise; so is a mega-popular
-    project (golang/go, tensorflow, kubernetes) that just sits on Trending from its
-    sheer size. Either is kept only if it's genuinely current: a brand-new repo, a
-    real star spike today, or active HN discussion / an X share."""
+    such as golang/go, tensorflow, or kubernetes can sit on a niche Trending page
+    from sheer size rather than current news. It is kept only if it is a global
+    leader, brand-new, genuinely spiking, or actively discussed by a current
+    community source."""
     if r.new_repo:
         return False
+    if r.trending_rank and r.trending_rank <= config.TOP_TRENDING_RANK:
+        return False                                      # current global leader, even if already huge
     if r.stars < config.EVERGREEN_STARS:
         return False
-    if set(r.sources) == {"web"}:
-        return True                                       # web-only re-list of a famous repo
     spiking = r.stars_today >= config.EVERGREEN_VELOCITY  # genuinely surging, not passive
-    discussed = bool({"hn", "x"} & set(r.sources))        # a current conversation worth surfacing
+    discussed = bool({"hn", "x", "reddit", "lobsters"} & set(r.sources))
     return not (spiking or discussed)
