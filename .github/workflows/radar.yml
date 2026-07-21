@@ -74,6 +74,8 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           GH_RADAR_HOME: state            # de-dup memory -> state/seen.json
           GH_RADAR_DIGEST_DIR: digests     # browsable archive -> digests/*.md
+          GH_RADAR_TARGET_ITEMS: "5"       # Tier B fills the normal digest
+          GH_RADAR_SAFETY_CAP: "10"        # Tier A may expand, within this cap
         run: python radar.py
 
       - name: Commit digest archive + de-dup memory

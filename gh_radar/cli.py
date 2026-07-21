@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from operator import attrgetter
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -11,7 +12,7 @@ from . import config
 from .email_out import send_email
 from .models import Repo
 from .render import render_md, summarize_zh
-from .scoring import importance_reasons, is_evergreen_noise, score
+from .scoring import classify_importance, is_evergreen_noise, score
 from .sources import SKIP_NAME_RE, SOURCES, enrich
 from .state import already_ran_today, load_seen, mark_ran_today, save_seen
 
@@ -37,11 +38,11 @@ def collect():
     return repos, errors
 
 
-def select(repos, seen):
-    """Return only repos important enough to interrupt the reader.
+def qualify(repos, seen):
+    """Filter, enrich, classify, and rank all repos worthy of delivery.
 
-    Discovery is intentionally broad. Delivery is not: after the basic hygiene
-    filters, every repo must clear the explicit importance gate before ranking.
+    This intentionally does not truncate. Separating qualification from delivery
+    policy makes it possible to audit how many important items a cap would omit.
     """
     cutoff = time.time() - config.SEEN_TTL_DAYS * 86400
     out = []
@@ -50,22 +51,44 @@ def select(repos, seen):
             continue
         # Most of the broad candidate pool can be rejected from source signals
         # alone (GitHub's new-repo search already supplies total stars). This
-        # turns ~200 serial GitHub lookups into only the handful that can pass and avoids
-        # spending rate limit or runtime on items that can never be delivered.
-        pre_reasons = importance_reasons(r)
-        if not pre_reasons:
+        # turns ~200 serial GitHub lookups into only the handful that can pass
+        # and avoids spending rate limit or runtime on items that can never be
+        # delivered.
+        pre_decision = classify_importance(r)
+        if not pre_decision:
             continue
         if not enrich(r) or r.stars < config.MIN_STARS or is_evergreen_noise(r):
             continue
         if not r.url:
             r.url = f"https://github.com/{full}"
-        r.important_because = importance_reasons(r)
-        if not r.important_because:
+        decision = classify_importance(r)
+        if not decision:
             continue
+        r.importance_tier = decision.tier
+        r.important_because = list(decision.reasons)
         r.score = score(r)
         out.append(r)
     out.sort(key=lambda r: r.score, reverse=True)
-    return out[:config.MAX_ITEMS]
+    return out
+
+
+def choose(qualified):
+    """Adaptive delivery policy: Tier A expands; Tier B only fills to target."""
+    tier_a = sorted((r for r in qualified if r.importance_tier == "A"),
+                    key=attrgetter("score"), reverse=True)
+    tier_b = sorted((r for r in qualified if r.importance_tier == "B"),
+                    key=attrgetter("score"), reverse=True)
+    selected = tier_a[:config.SAFETY_CAP]
+    if len(selected) < config.TARGET_ITEMS:
+        room = min(config.TARGET_ITEMS - len(selected),
+                   config.SAFETY_CAP - len(selected))
+        selected.extend(tier_b[:room])
+    return selected
+
+
+def select(repos, seen):
+    """Compatibility wrapper for the full qualification + delivery policy."""
+    return choose(qualify(repos, seen))
 
 
 def radar_day(now=None):
@@ -85,8 +108,15 @@ def main():
     print("gh-radar: collecting…", file=sys.stderr)
     repos, errors = collect()
     seen = load_seen()
-    top = select(repos, seen)
-    print(f"  important: {len(top)} of {len(repos)} collected repos", file=sys.stderr)
+    qualified = qualify(repos, seen)
+    top = choose(qualified)
+    qa = sum(r.importance_tier == "A" for r in qualified)
+    qb = sum(r.importance_tier == "B" for r in qualified)
+    sa = sum(r.importance_tier == "A" for r in top)
+    sb = sum(r.importance_tier == "B" for r in top)
+    print(f"  important: {qa} Tier A + {qb} Tier B qualified; "
+          f"selected {sa} Tier A + {sb} Tier B from {len(repos)} repos",
+          file=sys.stderr)
     if not top:
         # No NEW repos. Two very different reasons look identical here, so split them:
         if not repos:
@@ -112,7 +142,12 @@ def main():
         (path / f"github-radar-{when}.md").write_text(md)
         print(f"  ✓ wrote {path / f'github-radar-{when}.md'}", file=sys.stderr)
 
-    send_email(f"GitHub Radar — {when} ({len(top)} important repos)", md)
+    subject_mix = []
+    if sa:
+        subject_mix.append(f"{sa} must-see")
+    if sb:
+        subject_mix.append(f"{sb} notable")
+    send_email(f"GitHub Radar — {when} ({' + '.join(subject_mix)})", md)
 
     now = time.time()
     for r in top:

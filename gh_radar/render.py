@@ -105,14 +105,24 @@ def render_md(repos, when):
     used = sorted({s for r in repos for s in r.sources})
     pretty = ", ".join(SOURCE_NAMES.get(s, s) for s in used)
     noun = "repo" if len(repos) == 1 else "repos"
+    tier_a = sum(r.importance_tier == "A" for r in repos)
+    tier_b = sum(r.importance_tier == "B" for r in repos)
+    mix_parts = []
+    if tier_a:
+        mix_parts.append(f"{tier_a} must-see")
+    if tier_b:
+        mix_parts.append(f"{tier_b} notable")
+    mix = " + ".join(mix_parts)
     lines = [f"# GitHub Radar — {when}", "",
-             f"_{len(repos)} important {noun} surfaced from {pretty}._", ""]
+             f"_{len(repos)} important {noun}: {mix}, surfaced from {pretty}._", ""]
     for i, r in enumerate(repos, 1):
         lang = f" · {r.lang}" if r.lang else ""
         lines.append(f"### {i}. [{r.full_name}]({r.url})")
         lines.append(f"⭐ {r.stars:,} · {_tags(r)}{lang}")
         if r.important_because:
-            lines.append(f"🎯 Why now: {' · '.join(r.important_because)}")
+            label = "Must-see" if r.importance_tier == "A" else "Notable"
+            lines.append(f"🎯 Tier {r.importance_tier} · {label}: "
+                         f"{' · '.join(r.important_because)}")
         if r.zh:
             lines.append("")
             lines.append(f"> {r.zh}")

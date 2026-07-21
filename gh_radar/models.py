@@ -34,6 +34,7 @@ class Repo:
     # --- derived ---
     zh: str = ""                                       # Traditional-Chinese summary
     score: float = 0.0
+    importance_tier: str = ""                          # "A" must-send / "B" notable
     important_because: list = field(default_factory=list)
 
     def merge(self, attrs):

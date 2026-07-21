@@ -1,7 +1,17 @@
-"""Ranking: score a Repo from its signals, and decide which repos to keep."""
+"""Importance classification, ranking, and evergreen-noise filtering."""
+from dataclasses import dataclass
+
 from . import config
 
 W = config.W
+
+
+@dataclass(frozen=True)
+class ImportanceDecision:
+    """Auditable delivery decision made before score-based ordering."""
+
+    tier: str
+    reasons: tuple[str, ...]
 
 
 def score(r):
@@ -25,57 +35,85 @@ def score(r):
     return s
 
 
-def _source_families(r):
-    """Independent discovery families; two GitHub endpoints are one family."""
-    families = set()
-    if {"trending", "new"} & set(r.sources):
-        families.add("GitHub")
-    if "hn" in r.sources:
-        families.add("Hacker News")
-    if "x" in r.sources:
-        families.add("X")
-    if "reddit" in r.sources:
-        families.add("Reddit")
-    if "lobsters" in r.sources:
-        families.add("Lobsters")
+def _active_families(r):
+    """Independently active source families at their moderate thresholds.
+
+    Merely appearing in two feeds is not corroboration: each family must carry
+    its own measurable activity. GitHub Trending and new-repo search intentionally
+    collapse into one family.
+    """
+    families = {}
+    github_signals = []
+    if r.stars_today >= config.MODERATE_STARS_PER_DAY:
+        github_signals.append(f"{r.stars_today:,} stars/day")
+    if r.new_repo and r.stars >= config.MODERATE_NEW_REPO_STARS:
+        github_signals.append(f"new repo at {r.stars:,} stars")
+    if github_signals:
+        families["GitHub"] = ", ".join(github_signals)
+    if r.hn_points >= config.MODERATE_HN_POINTS:
+        families["Hacker News"] = f"{r.hn_points:,} points"
+    if r.x_likes >= config.MODERATE_X_LIKES:
+        families["X"] = f"{r.x_likes:,} likes"
+    if r.reddit_points >= config.MODERATE_REDDIT_POINTS:
+        families["Reddit"] = f"{r.reddit_points:,} points"
+    if r.lobsters_score >= config.MODERATE_LOBSTERS_SCORE:
+        families["Lobsters"] = f"{r.lobsters_score:,} points"
     return families
 
 
-def importance_reasons(r):
-    """Return concrete reasons this repo is important enough to push.
+def classify_importance(r):
+    """Classify a repo as Tier A (must-send), Tier B (notable), or unqualified.
 
-    Ranking answers "which first"; this gate answers the more important
-    question: "should this interrupt the reader at all?" Ordinary language-page
-    Trending entries and weak single-source activity do
-    not qualify. The gate is deterministic so quiet days remain genuinely quiet.
+    Tier A is exceptional single-source activity or genuine independent
+    corroboration and may expand the digest beyond five items. Tier B is a strong
+    single-source signal and only fills the normal five-item target.
     """
-    reasons = []
+    tier_a = []
     if r.trending_rank and r.trending_rank <= config.TOP_TRENDING_RANK:
-        reasons.append(f"GitHub Trending #{r.trending_rank}")
-    if r.stars_today >= config.MOMENTUM_STARS_PER_DAY:
-        reasons.append(f"{r.stars_today:,} stars/day")
-    if r.hn_points >= config.STRONG_HN_POINTS:
-        reasons.append(f"{r.hn_points:,} HN points")
-    if r.x_likes >= config.STRONG_X_LIKES:
-        reasons.append(f"{r.x_likes:,} likes on a curated X post")
-    if r.reddit_points >= config.STRONG_REDDIT_POINTS:
-        reasons.append(f"{r.reddit_points:,} Reddit points")
-    if r.lobsters_score >= config.STRONG_LOBSTERS_SCORE:
-        reasons.append(f"{r.lobsters_score:,} Lobsters points")
-    if r.new_repo and r.stars >= config.BREAKOUT_NEW_REPO_STARS:
-        reasons.append(f"new repo already at {r.stars:,} stars")
+        tier_a.append(f"GitHub Trending #{r.trending_rank}")
+    if r.stars_today >= config.MUST_SEND_STARS_PER_DAY:
+        tier_a.append(f"{r.stars_today:,} stars/day")
+    if r.hn_points >= config.MUST_SEND_HN_POINTS:
+        tier_a.append(f"{r.hn_points:,} HN points")
+    if r.x_likes >= config.MUST_SEND_X_LIKES:
+        tier_a.append(f"{r.x_likes:,} likes on a curated X post")
+    if r.reddit_points >= config.MUST_SEND_REDDIT_POINTS:
+        tier_a.append(f"{r.reddit_points:,} Reddit points")
+    if r.lobsters_score >= config.MUST_SEND_LOBSTERS_SCORE:
+        tier_a.append(f"{r.lobsters_score:,} Lobsters points")
+    if r.new_repo and r.stars >= config.MUST_SEND_NEW_REPO_STARS:
+        tier_a.append(f"new repo already at {r.stars:,} stars")
 
-    families = _source_families(r)
-    moderate = (
-        r.stars_today >= config.MODERATE_STARS_PER_DAY
-        or r.hn_points >= config.MODERATE_HN_POINTS
-        or r.x_likes >= config.MODERATE_X_LIKES
-        or r.reddit_points >= config.MODERATE_REDDIT_POINTS
-        or r.lobsters_score >= config.MODERATE_LOBSTERS_SCORE
-    )
-    if not reasons and len(families) >= 2 and moderate:
-        reasons.append("corroborated by " + " + ".join(sorted(families)))
-    return reasons
+    active = _active_families(r)
+    if len(active) >= 2:
+        detail = " + ".join(
+            f"{name} ({signal})" for name, signal in sorted(active.items()))
+        tier_a.append(f"independently corroborated by {detail}")
+    if tier_a:
+        return ImportanceDecision("A", tuple(tier_a))
+
+    tier_b = []
+    if r.stars_today >= config.MOMENTUM_STARS_PER_DAY:
+        tier_b.append(f"{r.stars_today:,} stars/day")
+    if r.hn_points >= config.STRONG_HN_POINTS:
+        tier_b.append(f"{r.hn_points:,} HN points")
+    if r.x_likes >= config.STRONG_X_LIKES:
+        tier_b.append(f"{r.x_likes:,} likes on a curated X post")
+    if r.reddit_points >= config.STRONG_REDDIT_POINTS:
+        tier_b.append(f"{r.reddit_points:,} Reddit points")
+    if r.lobsters_score >= config.STRONG_LOBSTERS_SCORE:
+        tier_b.append(f"{r.lobsters_score:,} Lobsters points")
+    if r.new_repo and r.stars >= config.BREAKOUT_NEW_REPO_STARS:
+        tier_b.append(f"new repo already at {r.stars:,} stars")
+    if tier_b:
+        return ImportanceDecision("B", tuple(tier_b))
+    return None
+
+
+def importance_reasons(r):
+    """Compatibility helper for callers that only need the explanation."""
+    decision = classify_importance(r)
+    return list(decision.reasons) if decision else []
 
 
 def is_evergreen_noise(r):

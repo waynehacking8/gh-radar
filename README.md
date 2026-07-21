@@ -5,8 +5,9 @@
 You saw `mempalace` on X and thought *"how did I not know about this?"*. gh-radar
 is the cron job that makes sure you find the next one. Every morning it pulls
 the tools that are trending and being discussed, dedupes them, and applies a
-strict importance gate. It emails at most five repos; on an ordinary day it
-sends nothing.
+strict, tiered importance gate. Must-see items can expand the alert beyond five;
+notable items only fill empty slots in the normal five-item target. A ten-item
+safety cap prevents runaway alerts, and on an ordinary day it sends nothing.
 
 It reads the places tools surface, across several current-signal angles. Five of
 the six sources need **no API key at all**; only Reddit is opt-in. A Claude subscription (CLI or
@@ -31,12 +32,19 @@ raises rate limits if the keyless tier starts returning 429s.
 
 Discovery remains broad but fresh: stale weekly Trending entries and undated web
 listicles are excluded, and X/Lobsters items must be no more than 48 hours old.
-A repo is delivered only when it has a decisive
-signal: global GitHub Trending top 3, exceptional star velocity, strong community
-engagement, breakout-new-repo growth, or moderate activity corroborated by two
-independent communities. A 90-day memory stops old projects recycling into the
-alert. Any single source can fail
-or be disabled without affecting the rest.
+A repo is delivered only when it reaches one of two explicit tiers:
+
+- **Tier A / must-see:** global Trending top 3; at least 500 stars/day; HN 200,
+  X 300, Reddit 750, or Lobsters 100 engagement; a new repo already at 2,000
+  stars; or moderate activity from at least two independently active source
+  families. Every Tier A item is sent, up to the ten-item safety cap.
+- **Tier B / notable:** at least 250 stars/day; HN 100, X 100, Reddit 300, or
+  Lobsters 50 engagement; or a new repo already at 1,000 stars. Tier B only fills
+  the alert to the normal target of five—it never displaces Tier A or extends an
+  alert that already contains five Tier A items.
+
+A 90-day memory stops old projects recycling into the alert. Any single source
+can fail or be disabled without affecting the rest.
 
 ## Run it on GitHub Actions (recommended — laptop can be off)
 
@@ -75,8 +83,8 @@ gh-radar: collecting…
   lobsters: 1 repos
   x: 3 repos
   ✓ X: 3 repo(s) resolved from prose tweets
-  important: 3 of 147 collected repos
-  ✓ Chinese summaries: 3/3
+  important: 6 Tier A + 4 Tier B qualified; selected 6 Tier A + 0 Tier B from 147 repos
+  ✓ Chinese summaries: 6/6
   ✓ emailed digest to you@example.com
 ```
 
@@ -101,11 +109,15 @@ All via env (see `config.example.env`):
 - `FIRECRAWL_API_KEY` — optional: lifts Firecrawl's keyless 429 cap for X.
 - `CLAUDE_CODE_OAUTH_TOKEN` — optional: enables Chinese summaries + X-prose resolution.
 - `SMTP_*` / `EMAIL_TO` — Gmail App Password delivery (EMAIL_TO falls back to SMTP_USER).
-- `MIN_STARS` (30), `SEEN_TTL_DAYS` (90), `GH_RADAR_MAX_ITEMS` (5),
+- `MIN_STARS` (30), `SEEN_TTL_DAYS` (90), `GH_RADAR_TARGET_ITEMS` (5),
+  `GH_RADAR_SAFETY_CAP` (10),
   `GH_RADAR_EVERGREEN_STARS` (50000) — tuning.
 - `GH_RADAR_TOP_TRENDING_RANK` (3), `GH_RADAR_MOMENTUM_STARS_PER_DAY` (250),
   `GH_RADAR_STRONG_HN_POINTS` (100), and the other `GH_RADAR_STRONG_*` knobs —
-  the importance gate. A quiet run sends no email.
+  Tier B thresholds.
+- `GH_RADAR_MUST_SEND_STARS_PER_DAY` (500), `GH_RADAR_MUST_SEND_HN_POINTS`
+  (200), and the other `GH_RADAR_MUST_SEND_*` knobs — Tier A thresholds. A quiet
+  run sends no email.
 - `GH_RADAR_SOURCE_MAX_AGE_HOURS` (48), `GH_RADAR_NEW_REPO_MAX_AGE_DAYS` (7) —
   explicit source freshness windows.
 - `GH_RADAR_TIMEZONE` (`Asia/Taipei`) — calendar date used by the daily sentinel
@@ -125,7 +137,7 @@ gh_radar/
   models.py     the Repo dataclass — typed core model (merge() rejects unknown keys)
   clients.py    github / firecrawl / claude / http — every call degrades to None
   sources.py    one src_*() per signal; SOURCES table; enrich()
-  scoring.py    explicit importance gate + ranking + evergreen-noise filter
+  scoring.py    Tier A/B classification + ranking + evergreen-noise filter
   state.py      de-dup memory (seen.json), atomic writes
   render.py     zh summaries, Markdown digest, HTML
   email_out.py  SMTP delivery
@@ -137,7 +149,7 @@ Standard library only — zero pip dependencies.
 ## Honest limitations
 
 - **GitHub Trending has no official API**, so that source is an HTML scrape that
-  can break on a redesign. The other six keep the digest alive if it does.
+  can break on a redesign. The other five keep the digest alive if it does.
 - **No `GITHUB_TOKEN` = trending-only.** Without a token the GitHub API rate-limits
   and every non-trending repo is dropped at the enrich step. CI injects one.
 - **X prose resolution needs Claude.** Without the CLI/token, X keeps only tweets
@@ -161,5 +173,5 @@ score = stars_today                       # trending velocity
       + 100–300 for global Trending #3–#1
 ```
 
-Only repos that clear the importance gate are ranked. The top 5 go in the alert;
-a 90-day memory stops repeats.
+Qualification and delivery size are separate: Tier A expands from 1–10 items;
+Tier B fills only up to the five-item target. A 90-day memory stops repeats.

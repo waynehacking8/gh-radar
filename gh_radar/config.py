@@ -15,7 +15,13 @@ TIMEZONE = os.environ.get("GH_RADAR_TIMEZONE", "Asia/Taipei")
 GH_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 MIN_STARS = int(os.environ.get("MIN_STARS", "30"))
 SEEN_TTL_DAYS = int(os.environ.get("SEEN_TTL_DAYS", "90"))
-MAX_ITEMS = int(os.environ.get("GH_RADAR_MAX_ITEMS", "5"))
+# Adaptive delivery: Tier A may expand beyond the normal five-item digest, while
+# Tier B only fills empty slots up to TARGET_ITEMS. SAFETY_CAP is a final guard
+# for unusually noisy ecosystem-wide events. GH_RADAR_MAX_ITEMS remains a
+# backwards-compatible environment alias for GH_RADAR_SAFETY_CAP.
+SAFETY_CAP = max(1, int(os.environ.get(
+    "GH_RADAR_SAFETY_CAP", os.environ.get("GH_RADAR_MAX_ITEMS", "10"))))
+TARGET_ITEMS = min(SAFETY_CAP, max(1, int(os.environ.get("GH_RADAR_TARGET_ITEMS", "5"))))
 EVERGREEN_STARS = int(os.environ.get("GH_RADAR_EVERGREEN_STARS", "50000"))
 # A repo this big (golang/go, tensorflow, kubernetes) sits on Trending every day
 # from sheer mass, not news. Treat it as evergreen noise UNLESS it's genuinely
@@ -24,7 +30,7 @@ EVERGREEN_VELOCITY = 250
 
 # Importance gate. Discovery stays broad, but delivery is deliberately sparse:
 # a repo must clear at least one of these decisive signals (or be independently
-# corroborated; see scoring.importance_reasons) before it can enter the email.
+# corroborated; see scoring.classify_importance) before it can enter the email.
 # The defaults are intentionally conservative so "Trending #1"-calibre projects
 # stand out instead of being buried in a 50-link daily catalogue.
 TOP_TRENDING_RANK = int(os.environ.get("GH_RADAR_TOP_TRENDING_RANK", "3"))
@@ -35,9 +41,20 @@ STRONG_REDDIT_POINTS = int(os.environ.get("GH_RADAR_STRONG_REDDIT_POINTS", "300"
 STRONG_LOBSTERS_SCORE = int(os.environ.get("GH_RADAR_STRONG_LOBSTERS_SCORE", "50"))
 BREAKOUT_NEW_REPO_STARS = int(os.environ.get("GH_RADAR_BREAKOUT_NEW_REPO_STARS", "1000"))
 
+# Tier A / must-send thresholds. These represent exceptional single-source
+# activity. A repo can also reach Tier A through two independently active source
+# families at the moderate thresholds below.
+MUST_SEND_STARS_PER_DAY = int(os.environ.get("GH_RADAR_MUST_SEND_STARS_PER_DAY", "500"))
+MUST_SEND_HN_POINTS = int(os.environ.get("GH_RADAR_MUST_SEND_HN_POINTS", "200"))
+MUST_SEND_X_LIKES = int(os.environ.get("GH_RADAR_MUST_SEND_X_LIKES", "300"))
+MUST_SEND_REDDIT_POINTS = int(os.environ.get("GH_RADAR_MUST_SEND_REDDIT_POINTS", "750"))
+MUST_SEND_LOBSTERS_SCORE = int(os.environ.get("GH_RADAR_MUST_SEND_LOBSTERS_SCORE", "100"))
+MUST_SEND_NEW_REPO_STARS = int(os.environ.get("GH_RADAR_MUST_SEND_NEW_REPO_STARS", "2000"))
+
 # A second, independent community seeing the same repo can promote a moderate
 # signal. "new" and "trending" are one GitHub family.
 MODERATE_STARS_PER_DAY = 50
+MODERATE_NEW_REPO_STARS = 500
 MODERATE_HN_POINTS = 30
 MODERATE_X_LIKES = 25
 MODERATE_REDDIT_POINTS = 100
