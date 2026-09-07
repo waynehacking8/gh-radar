@@ -1,8 +1,13 @@
+import os
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import patch
 
+from gh_radar import config
 from gh_radar.cli import choose, main, radar_day, select
+from gh_radar.email_out import send_email as actual_send_email
 from gh_radar.models import Repo
 
 
@@ -90,6 +95,128 @@ class SelectionTests(unittest.TestCase):
         main()
         send_email.assert_not_called()
         mark_ran.assert_called_once()
+
+
+class MainFlowTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        state_dir = Path(self.tempdir.name)
+        self.seen_path = state_dir / "seen.json"
+        self.last_run_path = state_dir / "last-run"
+        self.summary_path = state_dir / "summary.md"
+        self.seen_path.write_text('{"owner/old": 1}')
+        self.last_run_path.write_text("2026-09-06")
+        self.state_patch = patch.multiple(
+            config,
+            STATE_DIR=state_dir,
+            SEEN_PATH=self.seen_path,
+            LAST_RUN_PATH=self.last_run_path,
+        )
+        self.state_patch.start()
+        self.addCleanup(self.state_patch.stop)
+        self.env_patch = patch.dict(
+            os.environ,
+            {"GITHUB_STEP_SUMMARY": str(self.summary_path)},
+            clear=True,
+        )
+        self.env_patch.start()
+        self.addCleanup(self.env_patch.stop)
+
+    def flow_patches(self, qualified=None):
+        repo = Repo("owner/new", importance_tier="A", score=10)
+        return (
+            patch("gh_radar.cli.radar_day", return_value="2026-09-07"),
+            patch("gh_radar.cli.collect", return_value=({repo.full_name: repo}, 0)),
+            patch("gh_radar.cli.qualify", return_value=[repo] if qualified is None else qualified),
+            patch("gh_radar.cli.summarize_zh"),
+            patch("gh_radar.cli.render_md", return_value="English digest"),
+        )
+
+    def test_missing_smtp_prints_english_fallback_but_does_not_update_state(self):
+        with self.assertRaises(RuntimeError), \
+             patch("gh_radar.cli.send_email", wraps=actual_send_email), \
+             patch("sys.stdout") as stdout, \
+             patch("sys.stderr") as stderr:
+            patches = self.flow_patches()
+            for item in patches:
+                item.start()
+            self.addCleanup(lambda: [item.stop() for item in patches])
+            main()
+
+        self.assertEqual(self.seen_path.read_text(), '{"owner/old": 1}')
+        self.assertEqual(self.last_run_path.read_text(), "2026-09-06")
+        self.assertIn("English digest", "".join(call.args[0] for call in stdout.write.call_args_list))
+        self.assertIn("status=failure", "".join(call.args[0] for call in stderr.write.call_args_list))
+        summary = self.summary_path.read_text()
+        self.assertIn("`failure`", summary)
+        self.assertNotIn("SMTP_PASS", summary)
+        self.assertNotIn("@", summary)
+
+    def test_smtp_exception_reports_failure_without_state_updates(self):
+        smtp_env = {
+            "SMTP_HOST": "smtp.example.invalid",
+            "SMTP_USER": "user@example.com",
+            "SMTP_PASS": "secret",
+            "EMAIL_TO": "to@example.com",
+        }
+        with self.assertRaises(RuntimeError), \
+             patch.dict(os.environ, smtp_env), \
+             patch("gh_radar.cli.send_email", wraps=actual_send_email), \
+             patch("gh_radar.email_out.smtplib.SMTP", side_effect=OSError("SMTP secret")), \
+             patch("gh_radar.email_out.time.sleep"), \
+             patch("sys.stderr"):
+            patches = self.flow_patches()
+            for item in patches:
+                item.start()
+            self.addCleanup(lambda: [item.stop() for item in patches])
+            main()
+
+        self.assertEqual(self.seen_path.read_text(), '{"owner/old": 1}')
+        self.assertEqual(self.last_run_path.read_text(), "2026-09-06")
+        summary = self.summary_path.read_text()
+        self.assertIn("`failure`", summary)
+        self.assertNotIn("SMTP secret", summary)
+
+    def test_success_writes_seen_and_last_run_after_delivery(self):
+        patches = self.flow_patches()
+        for item in patches:
+            item.start()
+        self.addCleanup(lambda: [item.stop() for item in patches])
+        with patch("gh_radar.cli.send_email", return_value=True) as send_email:
+            main()
+
+        self.assertIn("owner/new", self.seen_path.read_text())
+        self.assertEqual(self.last_run_path.read_text(), "2026-09-07")
+        send_email.assert_called_once()
+        self.assertIn("`sent`", self.summary_path.read_text())
+
+    def test_already_completed_skips_collection_and_state(self):
+        with patch("gh_radar.cli.radar_day", return_value="2026-09-06"), \
+             patch("gh_radar.cli.already_ran_today", return_value=True), \
+             patch("gh_radar.cli.collect") as collect, \
+             patch("gh_radar.cli.send_email") as send_email, \
+             patch("gh_radar.cli.save_seen") as save_seen, \
+             patch("gh_radar.cli.mark_ran_today") as mark_ran:
+            main()
+
+        collect.assert_not_called()
+        send_email.assert_not_called()
+        save_seen.assert_not_called()
+        mark_ran.assert_not_called()
+        self.assertIn("`already_completed`", self.summary_path.read_text())
+
+    def test_quiet_day_reports_no_new_without_sending(self):
+        patches = self.flow_patches(qualified=[])
+        for item in patches:
+            item.start()
+        self.addCleanup(lambda: [item.stop() for item in patches])
+        with patch("gh_radar.cli.send_email") as send_email:
+            main()
+        send_email.assert_not_called()
+        self.assertEqual(self.seen_path.read_text(), '{"owner/old": 1}')
+        self.assertEqual(self.last_run_path.read_text(), "2026-09-07")
+        self.assertIn("`no_new`", self.summary_path.read_text())
 
 
 if __name__ == "__main__":

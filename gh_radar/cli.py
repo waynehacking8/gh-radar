@@ -97,13 +97,27 @@ def radar_day(now=None):
     return now.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d")
 
 
-def main():
+def _report_status(status):
+    """Emit a fixed status without copying delivery details into CI logs."""
+    print(f"gh-radar: status={status}", file=sys.stderr)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary:
+        return
+    try:
+        with open(summary, "a", encoding="utf-8") as out:
+            out.write(f"- gh-radar status: `{status}`\n")
+    except OSError:
+        print("gh-radar: unable to write step summary", file=sys.stderr)
+
+
+def _run():
     when = radar_day()
     # Multi-window cron fires several times a day so a dropped/delayed fire still
     # lands one run. Only the first fire of the day does the work; the rest no-op.
     if already_ran_today(when):
         print(f"gh-radar: already ran today ({when}) — skipping this window.",
               file=sys.stderr)
+        _report_status("already_completed")
         return
     print("gh-radar: collecting…", file=sys.stderr)
     repos, errors = collect()
@@ -130,6 +144,7 @@ def main():
         # pushes and undermined the promise that every notification is important.
         print("  no important new repos today — no email sent.", file=sys.stderr)
         mark_ran_today(when)
+        _report_status("no_new")
         return
 
     summarize_zh(top)                                  # best-effort zh blurbs
@@ -147,10 +162,21 @@ def main():
         subject_mix.append(f"{sa} must-see")
     if sb:
         subject_mix.append(f"{sb} notable")
-    send_email(f"GitHub Radar — {when} ({' + '.join(subject_mix)})", md)
+    delivered = send_email(f"GitHub Radar — {when} ({' + '.join(subject_mix)})", md)
+    if not delivered:
+        raise RuntimeError("email delivery did not complete")
 
     now = time.time()
     for r in top:
         seen[r.full_name] = now
     save_seen(seen)
     mark_ran_today(when)                   # later windows today will no-op
+    _report_status("sent")
+
+
+def main():
+    try:
+        return _run()
+    except Exception:
+        _report_status("failure")
+        raise

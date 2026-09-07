@@ -67,9 +67,15 @@ a run any time from the **Actions** tab → *gh-radar* → *Run workflow*.
 ```bash
 cd gh-radar
 cp config.example.env config.env   # then fill in SMTP_PASS (Gmail App Password)
-./run.sh                           # run once, prints to stdout if SMTP unset
+./run.sh                           # run once; missing SMTP prints the digest and exits failed
 ./install.sh 8                     # schedule daily at 08:00 via cron
 ```
+
+The run reports one fixed status: `sent`, `no_new`, `already_completed`, or
+`failure`. GitHub Actions also appends that status to `GITHUB_STEP_SUMMARY`
+without addresses, secrets, or exception details. Missing SMTP configuration
+prints the digest; failed delivery raises an error. Neither updates the de-dup
+state, so a later run can retry it.
 
 Zero pip dependencies — Python 3.9+ standard library only.
 
@@ -118,6 +124,9 @@ All via env (see `config.example.env`):
 - `GH_RADAR_MUST_SEND_STARS_PER_DAY` (500), `GH_RADAR_MUST_SEND_HN_POINTS`
   (200), and the other `GH_RADAR_MUST_SEND_*` knobs — Tier A thresholds. A quiet
   run sends no email.
+- A selected digest is marked complete only after SMTP delivery succeeds. A
+  missing or failed SMTP configuration is a failed run and does not update
+  `state/seen.json` or `state/last-run`.
 - `GH_RADAR_SOURCE_MAX_AGE_HOURS` (48), `GH_RADAR_NEW_REPO_MAX_AGE_DAYS` (7) —
   explicit source freshness windows.
 - `GH_RADAR_TIMEZONE` (`Asia/Taipei`) — calendar date used by the daily sentinel
